@@ -7,40 +7,41 @@ import { Play, PenTool, Library, Plus, Edit2 } from 'lucide-react';
 // Sample course for demo
 const SAMPLE_COURSE: Course = {
   id: 'demo-1',
-  title: 'The Art of Coffee',
-  description: 'A cinematic journey into the history, science, and craft of brewing the perfect cup. Discover the origins of the bean and the mastery of the pour.',
+  title: 'Kunsten å brygge kaffe',
+  description: 'En filmatisk reise inn i historien, vitenskapen og håndverket bak den perfekte koppen. Oppdag bønnens opprinnelse og mestringen av brygging.',
+  category: 'Mat & Drikke',
   coverImage: 'https://images.unsplash.com/photo-1447933601403-0c60889eeaf6?q=80&w=2070&auto=format&fit=crop',
   blocks: [
     {
         id: '1',
         type: BlockType.HEADER,
-        content: 'Act I: The Origin',
-        metadata: { description: 'Before the cup, there was the bean.' }
+        content: 'Akt I: Opprinnelsen',
+        metadata: { description: 'Før koppen fantes bønnen.' }
     },
     {
         id: '2',
         type: BlockType.TEXT,
-        content: 'Coffee is not merely a drink. It is a ritual, a moment of pause in a chaotic world. To understand coffee is to understand a history that spans centuries and continents, from the highlands of Ethiopia to the bustling cafes of Paris.'
+        content: 'Kaffe er ikke bare en drikk. Det er et ritual, et øyeblikk av pause i en kaotisk verden. Å forstå kaffe er å forstå en historie som strekker seg over århundrer og kontinenter, fra høylandet i Etiopia til de travle kafeene i Paris.'
     },
     {
         id: '3',
         type: BlockType.VIDEO,
         content: 'https://www.youtube.com/watch?v=An6LvWQuj_8',
         metadata: {
-            title: 'Understanding Extraction',
-            description: 'Why your coffee tastes the way it does. A deep dive into the chemistry of flavor.'
+            title: 'Forstå Ekstraksjon',
+            description: 'Hvorfor kaffen smaker som den gjør. Et dypdykk i smakens kjemi.'
         }
     },
     {
         id: '4',
         type: BlockType.HEADER,
-        content: 'Act II: The Chemistry',
-        metadata: { description: 'Temperature, pressure, and the dance of molecules.' }
+        content: 'Akt II: Kjemien',
+        metadata: { description: 'Temperatur, trykk og molekylenes dans.' }
     },
     {
         id: '5',
         type: BlockType.TEXT,
-        content: 'When water meets ground coffee, a complex chemical reaction begins. Temperature, pressure, and time dance together to extract soluble compounds. Too little, and it is sour. Too much, and it is bitter.'
+        content: 'Når vann møter kaffe, begynner en kompleks kjemisk reaksjon. Temperatur, trykk og tid danser sammen for å trekke ut løselige forbindelser. For lite, og det blir surt. For mye, og det blir bittert.'
     }
   ]
 };
@@ -94,12 +95,12 @@ const App: React.FC = () => {
               Lumière
           </div>
           <div className="space-x-6 text-sm font-medium text-stone-500">
-              <button className="hover:text-stone-900 transition">Library</button>
+              <button className="hover:text-stone-900 transition">Bibliotek</button>
               <button 
                 onClick={createNewCourse}
                 className="hover:text-stone-900 transition bg-stone-100 px-4 py-2 rounded-full"
               >
-                Create
+                Opprett
               </button>
           </div>
       </nav>
@@ -107,13 +108,13 @@ const App: React.FC = () => {
       {/* Hero Section */}
       <header className="px-6 text-center max-w-4xl mx-auto mt-12 mb-24">
           <span className="inline-block mb-6 px-4 py-1.5 rounded-full bg-stone-100 text-stone-500 text-xs font-bold tracking-[0.2em] uppercase">
-              Redefining EdTech
+              Redefinerer Læring
           </span>
           <h1 className="font-serif text-5xl md:text-7xl text-stone-900 mb-8 leading-[1.1]">
-            Learn like you're <br/> <span className="italic text-stone-500">watching a film.</span>
+            Lær som om du ser <br/> <span className="italic text-stone-500">på en film.</span>
           </h1>
           <p className="text-xl text-stone-600 max-w-2xl mx-auto mb-12 font-light leading-relaxed">
-              Create and experience courses with cinematic fidelity. No code, no friction. Just pure, organic flow.
+              Skap og opplev kurs med filmatisk kvalitet. Ingen koding, ingen friksjon. Bare ren, organisk flyt.
           </p>
           
           <button 
@@ -121,15 +122,15 @@ const App: React.FC = () => {
             className="flex items-center space-x-3 bg-stone-900 text-white px-8 py-4 rounded-full hover:bg-stone-800 transition-all shadow-lg hover:shadow-xl mx-auto"
           >
               <PenTool className="w-5 h-5" />
-              <span className="font-medium">Create New Course</span>
+              <span className="font-medium">Opprett nytt kurs</span>
           </button>
       </header>
 
       {/* Course Grid / Overview */}
       <section className="max-w-7xl mx-auto w-full px-6 pb-24">
           <div className="flex items-center justify-between mb-12 border-b border-stone-200 pb-4">
-             <h2 className="font-serif text-3xl text-stone-800">Available Courses</h2>
-             <span className="text-stone-400 text-sm">{courses.length} Stories</span>
+             <h2 className="font-serif text-3xl text-stone-800">Tilgjengelige Kurs</h2>
+             <span className="text-stone-400 text-sm">{courses.length} Historier</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
@@ -163,7 +164,7 @@ const App: React.FC = () => {
                           <button 
                             onClick={(e) => editCourse(e, course)}
                             className="absolute top-4 right-4 bg-white/90 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white shadow-sm"
-                            title="Edit Course"
+                            title="Rediger Kurs"
                           >
                               <Edit2 className="w-4 h-4 text-stone-600"/>
                           </button>
@@ -172,7 +173,9 @@ const App: React.FC = () => {
                       <div className="px-2">
                           <div className="flex items-center space-x-2 mb-3">
                              <span className="h-px w-8 bg-stone-300"></span>
-                             <span className="text-[10px] uppercase tracking-widest text-stone-500 font-medium">Course</span>
+                             <span className="text-[10px] uppercase tracking-widest text-stone-500 font-medium">
+                                {course.category || "Kurs"}
+                             </span>
                           </div>
                           <h3 className="font-serif text-2xl text-stone-900 leading-tight mb-3 group-hover:text-stone-600 transition-colors">
                             {course.title}
@@ -192,13 +195,13 @@ const App: React.FC = () => {
                   <div className="w-12 h-12 rounded-full bg-stone-100 group-hover:bg-white flex items-center justify-center text-stone-400 group-hover:text-stone-900 transition-colors mb-4">
                       <Plus className="w-6 h-6" />
                   </div>
-                  <span className="font-serif text-lg text-stone-400 group-hover:text-stone-900">Create New Story</span>
+                  <span className="font-serif text-lg text-stone-400 group-hover:text-stone-900">Start ny historie</span>
               </button>
           </div>
       </section>
 
       <footer className="p-8 text-center text-stone-400 text-sm border-t border-stone-100 bg-white">
-          &copy; 2024 Lumière Learning Platform. Powered by Google Gemini.
+          &copy; 2024 Lumière Learning Platform. Drevet av Google Gemini.
       </footer>
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Course, CourseBlock, BlockType } from '../types';
-import { Plus, Image as ImageIcon, Type, Youtube, Wand2, Video, Loader2, ChevronLeft, Sparkles, LayoutTemplate, Bold, Italic, List, Folder, Link as LinkIcon, Trash2, Upload, Search, GripVertical, Heading1, Heading2, Heading3, Quote, Code, CheckSquare, Minus, AlignLeft, MoreHorizontal } from 'lucide-react';
+import { Plus, Image as ImageIcon, Type, Youtube, Wand2, Video, Loader2, ChevronLeft, Sparkles, LayoutTemplate, Bold, Italic, List, Folder, Link as LinkIcon, Trash2, Upload, Search, GripVertical, Heading1, Heading2, Heading3, Quote, Code, CheckSquare, Minus, AlignLeft, MoreHorizontal, Table, FileCode, Tag } from 'lucide-react';
 import { enrichBlockContent, generateCoverImage, generateCourseStructure, analyzeVideoContent } from '../services/gemini';
 
 interface CreatorStudioProps {
@@ -19,6 +19,7 @@ interface TabItem {
 export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onSave, onCancel }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
   const [coverImage, setCoverImage] = useState('');
   const [blocks, setBlocks] = useState<CourseBlock[]>([]);
   const [isThinking, setIsThinking] = useState(false);
@@ -41,6 +42,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
       if (initialCourse) {
           setTitle(initialCourse.title);
           setDescription(initialCourse.description);
+          setCategory(initialCourse.category || '');
           setCoverImage(initialCourse.coverImage);
           setBlocks(initialCourse.blocks);
       }
@@ -99,14 +101,14 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
   };
 
   const handleCoverUnsplash = () => {
-      const keyword = prompt("Enter a keyword for Unsplash (e.g. 'Minimalist Coffee'):");
+      const keyword = prompt("Skriv inn et søkeord for Unsplash (f.eks. 'Fjell', 'Kaffe'):");
       if (keyword) {
           setCoverImage(`https://source.unsplash.com/featured/1600x900?${encodeURIComponent(keyword)}`);
       }
   };
 
   const handleCoverUrl = () => {
-      const url = prompt("Paste image URL:");
+      const url = prompt("Lim inn bilde-URL:");
       if (url) setCoverImage(url);
   };
 
@@ -124,15 +126,15 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
       setBlocks([...blocks, {
           id: Date.now().toString(),
           type: BlockType.HEADER,
-          content: "New Act",
-          metadata: { description: "Section description..." }
+          content: "Ny Akt",
+          metadata: { description: "Beskrivelse av seksjonen..." }
       }]);
   };
 
   const addTabsBlock = () => {
       const initialTabs: TabItem[] = [
-          { label: 'Overview', content: 'Brief overview...', icon: '📋' },
-          { label: 'Details', content: 'Deep dive...', icon: '🔍' }
+          { label: 'Oversikt', content: 'Kort oversikt...', icon: '📋' },
+          { label: 'Detaljer', content: 'Dypdykk...', icon: '🔍' }
       ];
       setBlocks([...blocks, {
           id: Date.now().toString(),
@@ -142,12 +144,12 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
   };
 
   const addVideoBlock = async () => {
-      const url = prompt("Paste YouTube URL to embed:", "https://www.youtube.com/watch?v=...");
+      const url = prompt("Lim inn YouTube URL:", "https://www.youtube.com/watch?v=...");
       if (!url) return;
 
       const videoId = getYouTubeID(url);
-      const initialTitle = videoId ? "Loading Metadata..." : "Video Block";
-      const initialDesc = videoId ? "Gemini is analyzing..." : "Paste a valid YouTube URL";
+      const initialTitle = videoId ? "Henter metadata..." : "Videoblokk";
+      const initialDesc = videoId ? "Gemini analyserer..." : "Lim inn en gyldig YouTube URL";
 
       const tempId = Date.now().toString();
       const newBlock: CourseBlock = { 
@@ -188,12 +190,12 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
   };
 
   const handlePasteImageURL = (id: string) => {
-      const url = prompt("Paste Image URL:");
+      const url = prompt("Lim inn Bilde-URL:");
       if (url) updateBlockContent(id, url);
   };
 
   const handleUnsplashImage = (id: string) => {
-      const keyword = prompt("Enter a keyword for Unsplash:");
+      const keyword = prompt("Skriv inn et søkeord for Unsplash:");
       if (keyword) {
           updateBlockContent(id, `https://source.unsplash.com/featured/1200x800?${encodeURIComponent(keyword)}`);
       }
@@ -212,11 +214,11 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
     setBlocks(prev => [...prev, { 
         id: tempId, 
         type: BlockType.TEXT, 
-        content: "Analyzing video content with Gemini 3 Pro...", 
-        metadata: { title: "Video Analysis" } 
+        content: "Analyserer videoinnhold med Gemini 3 Pro...", 
+        metadata: { title: "Videoanalyse" } 
     }]);
 
-    const analysis = await analyzeVideoContent(file, "Analyze this video. Provide a summary.");
+    const analysis = await analyzeVideoContent(file, "Analyze this video. Provide a summary in Norwegian.");
     setBlocks(prev => prev.map(b => b.id === tempId ? { ...b, content: analysis } : b));
   };
 
@@ -261,50 +263,54 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
 
   // --- Rich Text Toolbar ---
   const insertMarkdown = (id: string, currentContent: string, type: string) => {
-      // Simple append for now, could be improved with selection awareness if we had a ref to textarea
       let insertion = '';
       switch(type) {
-          case 'bold': insertion = ' **bold** '; break;
-          case 'italic': insertion = ' *italic* '; break;
-          case 'h1': insertion = '\n# Heading 1\n'; break;
-          case 'h2': insertion = '\n## Heading 2\n'; break;
-          case 'h3': insertion = '\n### Heading 3\n'; break;
-          case 'list': insertion = '\n- List item'; break;
-          case 'list-ol': insertion = '\n1. List item'; break;
-          case 'check': insertion = '\n- [ ] Task'; break;
-          case 'quote': insertion = '\n> Blockquote\n'; break;
-          case 'code': insertion = '\n```\nCode block\n```\n'; break;
-          case 'inline-code': insertion = ' `code` '; break;
-          case 'link': insertion = ' [Link Title](url) '; break;
+          case 'bold': insertion = ' **fet tekst** '; break;
+          case 'italic': insertion = ' *kursiv* '; break;
+          case 'h1': insertion = '\n# Overskrift 1\n'; break;
+          case 'h2': insertion = '\n## Overskrift 2\n'; break;
+          case 'h3': insertion = '\n### Overskrift 3\n'; break;
+          case 'list': insertion = '\n- Listeobjekt'; break;
+          case 'list-ol': insertion = '\n1. Listeobjekt'; break;
+          case 'check': insertion = '\n- [ ] Oppgave'; break;
+          case 'quote': insertion = '\n> Sitat\n'; break;
+          case 'code-block': insertion = '\n```\nKodeblokk\n```\n'; break;
+          case 'inline-code': insertion = ' `kode` '; break;
+          case 'link': insertion = ' [Link Tittel](url) '; break;
           case 'hr': insertion = '\n---\n'; break;
+          case 'table': insertion = '\n| Overskrift 1 | Overskrift 2 |\n|---|---|\n| Celle 1 | Celle 2 |\n'; break;
       }
       updateBlockContent(id, currentContent + insertion);
   };
 
   const MarkdownToolbar: React.FC<{ blockId: string, content: string }> = ({ blockId, content }) => (
       <div className="flex flex-wrap gap-1 border-b border-stone-100 pb-2 mb-2 bg-stone-50/50 p-2 rounded-lg">
-          <button onClick={() => insertMarkdown(blockId, content, 'h1')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Heading 1"><Heading1 className="w-4 h-4" /></button>
-          <button onClick={() => insertMarkdown(blockId, content, 'h2')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Heading 2"><Heading2 className="w-4 h-4" /></button>
-          <button onClick={() => insertMarkdown(blockId, content, 'h3')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Heading 3"><Heading3 className="w-4 h-4" /></button>
+          <button onClick={() => insertMarkdown(blockId, content, 'h1')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Overskrift 1"><Heading1 className="w-4 h-4" /></button>
+          <button onClick={() => insertMarkdown(blockId, content, 'h2')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Overskrift 2"><Heading2 className="w-4 h-4" /></button>
+          <button onClick={() => insertMarkdown(blockId, content, 'h3')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Overskrift 3"><Heading3 className="w-4 h-4" /></button>
           <div className="w-px h-6 bg-stone-300 mx-1 self-center"></div>
-          <button onClick={() => insertMarkdown(blockId, content, 'bold')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Bold"><Bold className="w-4 h-4" /></button>
-          <button onClick={() => insertMarkdown(blockId, content, 'italic')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Italic"><Italic className="w-4 h-4" /></button>
+          <button onClick={() => insertMarkdown(blockId, content, 'bold')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Fet"><Bold className="w-4 h-4" /></button>
+          <button onClick={() => insertMarkdown(blockId, content, 'italic')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Kursiv"><Italic className="w-4 h-4" /></button>
           <div className="w-px h-6 bg-stone-300 mx-1 self-center"></div>
-          <button onClick={() => insertMarkdown(blockId, content, 'list')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Bullet List"><List className="w-4 h-4" /></button>
-          <button onClick={() => insertMarkdown(blockId, content, 'check')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Checklist"><CheckSquare className="w-4 h-4" /></button>
+          <button onClick={() => insertMarkdown(blockId, content, 'list')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Punktliste"><List className="w-4 h-4" /></button>
+          <button onClick={() => insertMarkdown(blockId, content, 'check')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Sjekkliste"><CheckSquare className="w-4 h-4" /></button>
           <div className="w-px h-6 bg-stone-300 mx-1 self-center"></div>
-          <button onClick={() => insertMarkdown(blockId, content, 'quote')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Quote"><Quote className="w-4 h-4" /></button>
-          <button onClick={() => insertMarkdown(blockId, content, 'code')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Code Block"><Code className="w-4 h-4" /></button>
+          <button onClick={() => insertMarkdown(blockId, content, 'quote')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Sitat"><Quote className="w-4 h-4" /></button>
+          <button onClick={() => insertMarkdown(blockId, content, 'inline-code')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Inline Kode"><FileCode className="w-4 h-4" /></button>
+          <button onClick={() => insertMarkdown(blockId, content, 'code-block')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Kodeblokk"><Code className="w-4 h-4" /></button>
+           <div className="w-px h-6 bg-stone-300 mx-1 self-center"></div>
+          <button onClick={() => insertMarkdown(blockId, content, 'table')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Sett inn tabell"><Table className="w-4 h-4" /></button>
           <button onClick={() => insertMarkdown(blockId, content, 'link')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Link"><LinkIcon className="w-4 h-4" /></button>
-          <button onClick={() => insertMarkdown(blockId, content, 'hr')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Horizontal Rule"><Minus className="w-4 h-4" /></button>
+          <button onClick={() => insertMarkdown(blockId, content, 'hr')} className="p-1.5 hover:bg-stone-200 rounded text-stone-600" title="Linjeskift"><Minus className="w-4 h-4" /></button>
       </div>
   );
 
   const handlePublish = () => {
       onSave({
           id: initialCourse?.id || Date.now().toString(),
-          title: title || "Untitled Course",
-          description: description || "No description provided.",
+          title: title || "Navnløst Kurs",
+          description: description || "Ingen beskrivelse.",
+          category: category || "Originalt Kurs",
           coverImage: coverImage,
           blocks
       });
@@ -323,13 +329,13 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
               <button onClick={onCancel} className="p-2 hover:bg-stone-100 rounded-full transition">
                   <ChevronLeft className="w-5 h-5 text-stone-500" />
               </button>
-              <span className="text-xs font-bold tracking-widest uppercase text-stone-400">Creator Studio</span>
+              <span className="text-xs font-bold tracking-widest uppercase text-stone-400">Skaperstudio</span>
           </div>
           <button 
             onClick={handlePublish}
             className="bg-stone-900 text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-stone-800 transition"
           >
-              {initialCourse ? 'Save Changes' : 'Publish Course'}
+              {initialCourse ? 'Lagre Endringer' : 'Publiser Kurs'}
           </button>
       </div>
 
@@ -339,13 +345,25 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
           <div className="group relative mb-12 space-y-6">
               <input
                 type="text"
-                placeholder="Enter Course Title..."
+                placeholder="Skriv inn kurstittel..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full text-5xl font-serif bg-transparent outline-none placeholder-stone-300 text-stone-900"
               />
+              
+              <div className="flex items-center space-x-2 text-stone-400 bg-stone-100/50 px-3 py-2 rounded-lg w-fit">
+                  <Tag className="w-4 h-4" />
+                  <input 
+                    type="text"
+                    placeholder="Kategori / Tag (f.eks. Historie)"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="bg-transparent outline-none text-sm text-stone-600 placeholder-stone-400 w-64"
+                  />
+              </div>
+
               <textarea
-                placeholder="Add a poetic description..."
+                placeholder="Legg til en poetisk beskrivelse..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full text-xl font-light bg-transparent outline-none placeholder-stone-300 text-stone-600 resize-none h-24"
@@ -358,17 +376,17 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                     className="flex items-center space-x-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-xs uppercase tracking-wider text-stone-600 transition disabled:opacity-50"
                  >
                     {isThinking ? <Loader2 className="w-3 h-3 animate-spin"/> : <Wand2 className="w-3 h-3" />}
-                    <span>Auto-Structure</span>
+                    <span>Auto-Struktur</span>
                  </button>
                  
                  <div className="h-6 w-px bg-stone-200 mx-2"></div>
-                 <span className="text-xs uppercase tracking-wider text-stone-400">Cover:</span>
+                 <span className="text-xs uppercase tracking-wider text-stone-400">Forsidebilde:</span>
 
                  <button 
                     onClick={handleGenerateCover}
                     disabled={isGeneratingImage || !title}
                     className="flex items-center space-x-2 px-3 py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-xs uppercase tracking-wider text-stone-600 transition disabled:opacity-50"
-                    title="Generate with AI"
+                    title="Generer med AI"
                  >
                     {isGeneratingImage ? <Loader2 className="w-3 h-3 animate-spin"/> : <Sparkles className="w-3 h-3" />}
                     <span>AI Gen</span>
@@ -377,16 +395,16 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                  <button 
                     onClick={() => coverUploadRef.current?.click()}
                     className="flex items-center space-x-2 px-3 py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-xs uppercase tracking-wider text-stone-600 transition"
-                    title="Upload File"
+                    title="Last opp fil"
                  >
                     <Upload className="w-3 h-3" />
-                    <span>Upload</span>
+                    <span>Last opp</span>
                  </button>
 
                  <button 
                     onClick={handleCoverUnsplash}
                     className="flex items-center space-x-2 px-3 py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-xs uppercase tracking-wider text-stone-600 transition"
-                    title="Search Unsplash"
+                    title="Søk Unsplash"
                  >
                     <Search className="w-3 h-3" />
                     <span>Unsplash</span>
@@ -395,7 +413,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                  <button 
                     onClick={handleCoverUrl}
                     className="flex items-center space-x-2 px-3 py-2 bg-stone-100 hover:bg-stone-200 rounded-lg text-xs uppercase tracking-wider text-stone-600 transition"
-                    title="Paste URL"
+                    title="Lim inn URL"
                  >
                     <LinkIcon className="w-3 h-3" />
                  </button>
@@ -444,7 +462,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                     value={block.content}
                                     onChange={(e) => updateBlockContent(block.id, e.target.value)}
                                     className="w-full h-full min-h-[120px] bg-transparent outline-none text-lg font-serif text-stone-700 resize-y leading-relaxed placeholder-stone-300 focus:bg-stone-50/30 rounded-md p-2 transition-colors"
-                                    placeholder="Write something beautiful..."
+                                    placeholder="Skriv noe vakkert..."
                                 />
                             </div>
                         )}
@@ -456,13 +474,13 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                 value={block.content}
                                 onChange={(e) => updateBlockContent(block.id, e.target.value)}
                                 className="w-full bg-transparent outline-none text-3xl font-serif font-bold text-stone-800 border-b border-transparent focus:border-stone-200 pb-2 transition-colors placeholder-stone-300"
-                                placeholder="New Act Title"
+                                placeholder="Ny Akt Tittel"
                                 />
                                 <input 
                                 value={block.metadata?.description || ''}
                                 onChange={(e) => updateBlockMetadata(block.id, 'description', e.target.value)}
                                 className="w-full bg-transparent outline-none text-stone-400 italic mt-2 text-sm"
-                                placeholder="Section theme or description..."
+                                placeholder="Seksjonstema eller beskrivelse..."
                                 />
                             </div>
                         )}
@@ -471,7 +489,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                         {block.type === BlockType.TABS && (
                             <div className="space-y-4">
                                 <div className="flex items-center text-stone-400 uppercase text-xs tracking-widest mb-4">
-                                    <LayoutTemplate className="w-4 h-4 mr-2"/> Interactive Tabs
+                                    <LayoutTemplate className="w-4 h-4 mr-2"/> Interaktive Faner
                                 </div>
                                 {(() => {
                                     let tabs: TabItem[] = [];
@@ -520,12 +538,12 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                                         } ${draggedTabIndex === tIdx ? 'opacity-50' : ''}`}
                                                     >
                                                         <span>{tab.icon || '📄'}</span>
-                                                        <span>{tab.label || 'Untitled'}</span>
+                                                        <span>{tab.label || 'Uten navn'}</span>
                                                     </div>
                                                 ))}
                                                 <button 
                                                     onClick={() => {
-                                                        const newTabs = [...tabs, { label: 'New Tab', content: '', icon: '✨' }];
+                                                        const newTabs = [...tabs, { label: 'Ny Fane', content: '', icon: '✨' }];
                                                         updateBlockContent(block.id, JSON.stringify(newTabs));
                                                         setActiveTabEdits(prev => ({ ...prev, [block.id]: newTabs.length - 1 }));
                                                     }}
@@ -540,7 +558,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                                 <div className="p-6 bg-white">
                                                     <div className="flex gap-4 mb-4">
                                                         <div className="w-20">
-                                                            <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Icon</label>
+                                                            <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Ikon</label>
                                                             <input 
                                                                 value={tabs[activeIndex].icon || ''}
                                                                 onChange={(e) => updateTab(activeIndex, 'icon', e.target.value)}
@@ -549,12 +567,12 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                                             />
                                                         </div>
                                                         <div className="flex-1">
-                                                            <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Tab Label</label>
+                                                            <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Fane Navn</label>
                                                             <input 
                                                                 value={tabs[activeIndex].label}
                                                                 onChange={(e) => updateTab(activeIndex, 'label', e.target.value)}
                                                                 className="w-full bg-stone-50 border border-stone-200 rounded-md px-3 py-1.5 font-medium text-stone-800 outline-none focus:border-stone-400"
-                                                                placeholder="e.g. Overview"
+                                                                placeholder="f.eks. Oversikt"
                                                             />
                                                         </div>
                                                         <div className="self-end">
@@ -565,26 +583,26 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                                                     setActiveTabEdits(prev => ({ ...prev, [block.id]: Math.max(0, activeIndex - 1) }));
                                                                 }}
                                                                 className="p-2 text-stone-400 hover:text-red-500 transition-colors bg-stone-50 rounded-md border border-stone-100 hover:border-red-200"
-                                                                title="Delete Tab"
+                                                                title="Slett Fane"
                                                             >
                                                                 <Trash2 className="w-4 h-4"/>
                                                             </button>
                                                         </div>
                                                     </div>
                                                     
-                                                    <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Content</label>
+                                                    <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Innhold</label>
                                                     <MarkdownToolbar blockId={`${block.id}-tab-${activeIndex}`} content={tabs[activeIndex].content} />
                                                     <textarea 
                                                         value={tabs[activeIndex].content}
                                                         onChange={(e) => updateTab(activeIndex, 'content', e.target.value)}
                                                         className="w-full min-h-[150px] bg-stone-50/30 border border-stone-100 rounded-lg p-4 text-stone-700 outline-none focus:bg-white focus:border-stone-300 focus:ring-2 focus:ring-stone-100 transition-all resize-y"
-                                                        placeholder="Tab content goes here. Markdown supported."
+                                                        placeholder="Faneinnhold her. Markdown støttes."
                                                     />
                                                 </div>
                                             )}
                                             {tabs.length === 0 && (
                                                 <div className="p-8 text-center text-stone-400 text-sm italic">
-                                                    No tabs yet. Click "+" to add one.
+                                                    Ingen faner enda. Klikk "+" for å legge til.
                                                 </div>
                                             )}
                                         </div>
@@ -604,7 +622,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                                 onClick={() => { setActiveImageBlockId(block.id); imageUploadRef.current?.click(); }}
                                                 className="text-xs uppercase tracking-wider hover:text-stone-600 font-medium flex items-center"
                                             >
-                                                <Upload className="w-3 h-3 mr-1"/> Upload
+                                                <Upload className="w-3 h-3 mr-1"/> Last opp
                                             </button>
                                             <span className="text-stone-200">|</span>
                                             <button 
@@ -643,7 +661,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                     className="w-full text-center bg-transparent text-sm italic text-stone-400 outline-none"
                                     value={block.metadata?.caption || ''}
                                     onChange={(e) => updateBlockMetadata(block.id, 'caption', e.target.value)}
-                                    placeholder="Add a caption..."
+                                    placeholder="Legg til bildetekst..."
                                 />
                             </div>
                         )}
@@ -653,7 +671,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                             <div className="space-y-4 bg-white p-6 rounded-xl shadow-sm border border-stone-100">
                                 <div className="flex items-center space-x-3 text-stone-500 mb-2">
                                     <Youtube className="w-5 h-5 text-red-600" />
-                                    <span className="text-xs uppercase tracking-wider font-medium">Magic Video Block</span>
+                                    <span className="text-xs uppercase tracking-wider font-medium">Magisk Videoblokk</span>
                                     {block.metadata?.description === "Gemini is analyzing..." && <Loader2 className="w-3 h-3 animate-spin"/>}
                                 </div>
                                 
@@ -667,7 +685,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                         />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-stone-500 font-mono text-xs">
-                                            Invalid Video URL
+                                            Ugyldig Video URL
                                         </div>
                                     )}
                                 </div>
@@ -677,13 +695,13 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                         className="w-full bg-transparent font-serif text-xl text-stone-900 outline-none placeholder-stone-300"
                                         value={block.metadata?.title || ''}
                                         onChange={(e) => updateBlockMetadata(block.id, 'title', e.target.value)}
-                                        placeholder="Video Title (Auto-generated)"
+                                        placeholder="Videotittel (Autogenerert)"
                                     />
                                     <input 
                                         className="w-full bg-transparent text-sm text-stone-500 outline-none placeholder-stone-300 font-light"
                                         value={block.metadata?.description || ''}
                                         onChange={(e) => updateBlockMetadata(block.id, 'description', e.target.value)}
-                                        placeholder="Video Description (Auto-generated)"
+                                        placeholder="Videobeskrivelse (Autogenerert)"
                                     />
                                 </div>
                             </div>
@@ -696,7 +714,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
           {/* Magic Add Bar */}
           <div className="mt-16 py-12 border-t border-stone-100 flex justify-center">
              <div className="flex items-center space-x-8 bg-white/80 backdrop-blur-sm shadow-2xl rounded-full px-10 py-5 border border-stone-100">
-                 <button onClick={addTextBlock} className="flex flex-col items-center space-y-2 group" title="Text">
+                 <button onClick={addTextBlock} className="flex flex-col items-center space-y-2 group" title="Tekst">
                      <div className="w-12 h-12 rounded-full bg-stone-50 flex items-center justify-center group-hover:bg-stone-900 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg">
                         <Type className="w-5 h-5" />
                      </div>
@@ -704,7 +722,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
 
                  <div className="w-px h-12 bg-stone-100"></div>
 
-                 <button onClick={addHeaderBlock} className="flex flex-col items-center space-y-2 group" title="New Section">
+                 <button onClick={addHeaderBlock} className="flex flex-col items-center space-y-2 group" title="Ny Seksjon">
                      <div className="w-12 h-12 rounded-full bg-stone-50 flex items-center justify-center group-hover:bg-stone-900 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg">
                         <LayoutTemplate className="w-5 h-5" />
                      </div>
@@ -712,7 +730,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
 
                  <div className="w-px h-12 bg-stone-100"></div>
                  
-                 <button onClick={addImageBlock} className="flex flex-col items-center space-y-2 group" title="Image">
+                 <button onClick={addImageBlock} className="flex flex-col items-center space-y-2 group" title="Bilde">
                      <div className="w-12 h-12 rounded-full bg-stone-50 flex items-center justify-center group-hover:bg-stone-900 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg">
                         <ImageIcon className="w-5 h-5" />
                      </div>
@@ -720,7 +738,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
 
                  <div className="w-px h-12 bg-stone-100"></div>
                  
-                 <button onClick={addTabsBlock} className="flex flex-col items-center space-y-2 group" title="Tabs">
+                 <button onClick={addTabsBlock} className="flex flex-col items-center space-y-2 group" title="Faner">
                      <div className="w-12 h-12 rounded-full bg-stone-50 flex items-center justify-center group-hover:bg-stone-900 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg">
                         <Folder className="w-5 h-5" />
                      </div>
@@ -728,7 +746,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                  
                  <div className="w-px h-12 bg-stone-100"></div>
 
-                 <button onClick={addVideoBlock} className="flex flex-col items-center space-y-2 group" title="Magic Video">
+                 <button onClick={addVideoBlock} className="flex flex-col items-center space-y-2 group" title="Magisk Video">
                      <div className="w-12 h-12 rounded-full bg-stone-50 flex items-center justify-center group-hover:bg-stone-900 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg relative">
                         <Sparkles className="w-5 h-5" />
                      </div>
@@ -736,7 +754,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
 
                  <div className="w-px h-12 bg-stone-100"></div>
 
-                 <button onClick={handleVideoAnalysis} className="flex flex-col items-center space-y-2 group" title="AI Analysis">
+                 <button onClick={handleVideoAnalysis} className="flex flex-col items-center space-y-2 group" title="AI Analyse">
                      <div className="w-12 h-12 rounded-full bg-stone-50 flex items-center justify-center group-hover:bg-stone-900 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg">
                         <Video className="w-5 h-5" />
                      </div>

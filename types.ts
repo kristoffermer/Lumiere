@@ -24,6 +24,7 @@ export interface Course {
   id: string;
   title: string;
   description: string;
+  category?: string; // Custom tag/category (e.g. "Matematikk", "Originalt Kurs")
   coverImage: string;
   blocks: CourseBlock[];
 }

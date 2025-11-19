@@ -57,15 +57,15 @@ export const analyzeVideoContent = async (file: File, prompt: string): Promise<s
               data: base64Data
             }
           },
-          { text: prompt }
+          { text: prompt + " Answer in Norwegian." }
         ]
       }
     });
 
-    return response.text || "Could not analyze video.";
+    return response.text || "Kunne ikke analysere videoen.";
   } catch (error) {
     console.error("Error analyzing video:", error);
-    return "Error analyzing video content. Please try again.";
+    return "Feil under videoanalyse. Vennligst prøv igjen.";
   }
 };
 
@@ -78,7 +78,7 @@ export const chatWithAI = async (history: { role: string; text: string }[], mess
     const chat = ai.chats.create({
       model: 'gemini-3-pro-preview',
       config: {
-        systemInstruction: "You are a helpful, warm, and intellectual teaching assistant named 'Lumière'. You help students understand course material with clarity and depth. Keep responses concise but insightful.",
+        systemInstruction: "Du er en hjelpsom, varm og intellektuell lærerassistent ved navn 'Lumière'. Du hjelper studenter med å forstå kursmateriell med klarhet og dybde. Hold svarene konsise, men innsiktsfulle. Svar alltid på norsk.",
       },
       history: history.map(h => ({
         role: h.role,
@@ -87,10 +87,10 @@ export const chatWithAI = async (history: { role: string; text: string }[], mess
     });
 
     const response = await chat.sendMessage({ message });
-    return response.text || "I'm reflecting on that...";
+    return response.text || "Jeg reflekterer over det...";
   } catch (error) {
     console.error("Chat error:", error);
-    return "I'm having trouble connecting to the knowledge base right now.";
+    return "Jeg har problemer med å koble til kunnskapsbasen akkurat nå.";
   }
 };
 
@@ -102,8 +102,9 @@ export const generateCourseStructure = async (topic: string): Promise<string> =>
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `Create a cinematic, narrative-driven course outline for the topic: "${topic}". 
-      Provide a Title, a poetic Description, and 3 distinct "Acts" (sections) that tell a story.
+      contents: `Lag en filmatisk, narrativ-drevet kursoversikt for emnet: "${topic}". 
+      Gi en Tittel (Title), en poetisk Beskrivelse (Description), og 3 distinkte "Akter" (Acts / sections) som forteller en historie.
+      Output må være på Norsk (Norwegian).
       Format the output as JSON.`,
       config: {
         thinkingConfig: { thinkingBudget: 32768 }, 
@@ -156,6 +157,7 @@ export const enrichBlockContent = async (content: string): Promise<{title: strin
             contents: `I have a link or text content: "${content}". 
             If it's a YouTube link, generate a catchy, educational title and a 1-sentence summary description for it. 
             If it's text, summarize it into a title and description.
+            Answer in Norwegian.
             Return JSON.`,
             config: {
                 responseMimeType: "application/json",
@@ -168,9 +170,9 @@ export const enrichBlockContent = async (content: string): Promise<{title: strin
                 }
             }
         });
-        const data = JSON.parse(response.text || '{"title": "New Block", "description": ""}');
+        const data = JSON.parse(response.text || '{"title": "Ny Blokk", "description": ""}');
         return { ...data, thumbnail };
     } catch (e) {
-        return { title: "Content Block", description: "Added content", thumbnail };
+        return { title: "Innholdsblokk", description: "Lagt til innhold", thumbnail };
     }
 }
