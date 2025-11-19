@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Course, BlockType, CourseBlock } from '../types';
-import { MessageSquare, X, Sparkles, Maximize2, Minimize2, ChevronDown, CheckSquare, Square } from 'lucide-react';
+import { MessageSquare, X, Sparkles, Maximize2, Minimize2, ChevronDown, CheckSquare, Square, ArrowLeft } from 'lucide-react';
 import { chatWithAI } from '../services/gemini';
 
 interface CourseViewProps {
@@ -15,32 +15,38 @@ interface CourseSection {
     styleIndex: number;
 }
 
-// Define atmospheric themes for sections with distinct but aesthetic colors
-// Alternating between warm, cool, and neutral to make transitions clear
+// Definerer atmosfæriske temaer for seksjoner med tydelige fargeoverganger
+// Endret farger for å være mer distinkte ("svært tydelig") men fortsatt estetiske
 const SECTION_STYLES = [
     { 
         name: 'Paper',
-        bg: 'bg-[#FDFCF8]', 
+        bg: 'bg-[#FDFCF8]',
+        text: 'text-stone-900'
     },
     { 
         name: 'Soft Sage',
-        bg: 'bg-[#ECF3F0]', // Distinct greenish tint
+        bg: 'bg-[#E3F0EA]', // Tydeligere grønn
+        text: 'text-stone-800'
     },
     { 
         name: 'Warm Sand',
-        bg: 'bg-[#FFF5EB]', // Distinct warm/orange tint
+        bg: 'bg-[#FAEBD7]', // Antique White, tydelig varm
+        text: 'text-stone-900'
     },
     { 
         name: 'Mist Blue',
-        bg: 'bg-[#F0F6FF]', // Distinct blue tint
+        bg: 'bg-[#E0EEFF]', // Tydeligere blå
+        text: 'text-stone-800'
     },
     { 
         name: 'Rose Quartz',
-        bg: 'bg-[#FFF0F3]', // Distinct pinkish tint
+        bg: 'bg-[#FFE4E8]', // Tydeligere rosa
+        text: 'text-stone-900'
     },
     {
         name: 'Velvet Grey',
-        bg: 'bg-[#F5F5F7]', // Cool grey
+        bg: 'bg-[#E5E5E5]', // Tydeligere grå
+        text: 'text-stone-800'
     }
 ];
 
@@ -77,36 +83,28 @@ const ScrollReveal: React.FC<{ children: React.ReactNode; delay?: number }> = ({
 
 const MarkdownText: React.FC<{ content: string }> = ({ content }) => {
     const parseFormatting = (text: string) => {
-        // Regex for various markdown elements
-        // Note: Added check for inline code (`...`)
         const regex = /(\[.*?\]\(.*?\)|`[^`]+`|\*\*.*?\*\*|\*.*?\*|~~.*?~~)/g;
         const parts = text.split(regex);
 
         return parts.map((part, i) => {
-            // Link
             if (part.match(/^\[(.*?)\]\((.*?)\)$/)) {
                 const match = part.match(/^\[(.*?)\]\((.*?)\)$/);
                 if (match) {
                     return <a key={i} href={match[2]} target="_blank" rel="noopener noreferrer" className="text-stone-800 underline decoration-1 underline-offset-4 hover:text-blue-600 transition-colors">{match[1]}</a>;
                 }
             }
-            // Inline Code
             if (part.startsWith('`') && part.endsWith('`')) {
                 return <code key={i} className="bg-stone-200/60 text-stone-800 px-1.5 py-0.5 rounded text-sm font-mono border border-stone-300/50 mx-0.5">{part.slice(1, -1)}</code>;
             }
-            // Bold
             if (part.startsWith('**') && part.endsWith('**')) {
                 return <strong key={i} className="font-bold text-stone-900">{part.slice(2, -2)}</strong>;
             }
-            // Italic
             if (part.startsWith('*') && part.endsWith('*')) {
                 return <em key={i} className="italic text-stone-600">{part.slice(1, -1)}</em>;
             }
-            // Strikethrough
             if (part.startsWith('~~') && part.endsWith('~~')) {
                 return <span key={i} className="line-through text-stone-400">{part.slice(2, -2)}</span>;
             }
-            
             return part;
         });
     };
@@ -115,9 +113,7 @@ const MarkdownText: React.FC<{ content: string }> = ({ content }) => {
         const rows = block.trim().split('\n');
         if (rows.length < 2) return null;
 
-        // Simple parser for | Header | format
         const headers = rows[0].split('|').filter(cell => cell.trim() !== '').map(cell => cell.trim());
-        // rows[1] is typically |---|---| separator, we skip it if it contains dashes
         let startIndex = 1;
         if (rows[1].includes('---')) {
             startIndex = 2;
@@ -158,7 +154,6 @@ const MarkdownText: React.FC<{ content: string }> = ({ content }) => {
     const renderBlock = (block: string, idx: number) => {
         const trimmed = block.trim();
         
-        // Code Block
         if (trimmed.startsWith('```')) {
             const content = trimmed.replace(/^```.*\n/, '').replace(/\n```$/, '');
             return (
@@ -173,34 +168,28 @@ const MarkdownText: React.FC<{ content: string }> = ({ content }) => {
             );
         }
 
-        // Table
         if (trimmed.startsWith('|')) {
             return renderTable(trimmed, idx);
         }
 
-        // Standard line-by-line rendering for text block
         return (
             <div key={idx}>
                 {block.split('\n').map((line, lIdx) => {
-                     // Headings
                     if (line.startsWith('# ')) return <h1 key={lIdx} className="font-serif text-4xl text-stone-900 mt-8 mb-4 leading-tight border-b border-stone-200 pb-4">{parseFormatting(line.replace('# ', ''))}</h1>;
                     if (line.startsWith('## ')) return <h2 key={lIdx} className="font-serif text-3xl text-stone-800 mt-8 mb-4 font-medium">{parseFormatting(line.replace('## ', ''))}</h2>;
                     if (line.startsWith('### ')) return <h3 key={lIdx} className="font-serif text-xl text-stone-700 mt-6 mb-3 font-bold uppercase tracking-wide">{parseFormatting(line.replace('### ', ''))}</h3>;
 
-                    // Blockquotes
                     if (line.startsWith('> ')) return (
                         <div key={lIdx} className="border-l-4 border-stone-400 pl-6 py-3 my-8 italic text-stone-700 text-xl font-serif bg-stone-100/50 rounded-r-xl">
                             {parseFormatting(line.replace('> ', ''))}
                         </div>
                     );
 
-                    // Lists
                     if (line.startsWith('- [ ] ')) return <div key={lIdx} className="flex items-center space-x-3 my-3 text-stone-700 font-medium"><Square className="w-5 h-5 text-stone-400" /><span>{parseFormatting(line.replace('- [ ] ', ''))}</span></div>;
                     if (line.startsWith('- [x] ')) return <div key={lIdx} className="flex items-center space-x-3 my-3 text-stone-400 line-through"><CheckSquare className="w-5 h-5 text-stone-400" /><span>{parseFormatting(line.replace('- [x] ', ''))}</span></div>;
                     if (line.startsWith('- ')) return <li key={lIdx} className="ml-4 list-disc pl-2 mb-2 text-stone-700 leading-relaxed">{parseFormatting(line.replace('- ', ''))}</li>;
                     if (line.match(/^\d+\. /)) return <li key={lIdx} className="ml-4 list-decimal pl-2 mb-2 text-stone-700 leading-relaxed">{parseFormatting(line.replace(/^\d+\. /, ''))}</li>;
 
-                    // HR
                     if (line.trim() === '---') return <div key={lIdx} className="flex items-center justify-center my-10 opacity-30"><span className="w-2 h-2 bg-stone-900 rounded-full mx-1"></span><span className="w-2 h-2 bg-stone-900 rounded-full mx-1"></span><span className="w-2 h-2 bg-stone-900 rounded-full mx-1"></span></div>;
 
                     if (line.trim() === '') return <br key={lIdx}/>;
@@ -211,7 +200,6 @@ const MarkdownText: React.FC<{ content: string }> = ({ content }) => {
         );
     }
 
-    // Split content into blocks (double newline) to handle block-level elements like tables/code correctly
     const blocks = content.split(/\n\n+/);
     return <div>{blocks.map((b, i) => renderBlock(b, i))}</div>;
 };
@@ -351,7 +339,6 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
   const [cinematicVideoId, setCinematicVideoId] = useState<string | null>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Organize blocks into Sections (Acts)
   const sections = useMemo(() => {
     const result: CourseSection[] = [];
     let currentSection: CourseSection = { 
@@ -386,11 +373,9 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
       const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
       setScrollProgress(totalScroll / windowHeight);
 
-      // Determine active section based on intersection/position
       sectionRefs.current.forEach((ref, index) => {
           if (ref) {
               const rect = ref.getBoundingClientRect();
-              // Trigger slightly earlier for better feel
               if (rect.top < window.innerHeight * 0.5 && rect.bottom > window.innerHeight * 0.2) {
                   setActiveSectionIndex(index);
               }
@@ -474,22 +459,18 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
     }
   };
 
-  // Active theme based on scroll
   const activeTheme = SECTION_STYLES[sections[activeSectionIndex]?.styleIndex % SECTION_STYLES.length] || SECTION_STYLES[0];
 
   return (
-    <div className="min-h-screen relative transition-colors duration-500">
+    <div className={`min-h-screen relative transition-colors duration-[1200ms] ease-in-out ${activeTheme.bg} ${activeTheme.text}`}>
       
-      {/* Global Atmosphere Background - Transitions smoothly between sections */}
-      <div className={`fixed inset-0 transition-colors duration-[1500ms] ease-in-out -z-20 ${activeTheme.bg}`}></div>
-      
-      {/* Global Floating Orbs - Subtle movement */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 opacity-40">
+      {/* Global Orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 opacity-30">
          <div className={`absolute top-[-20%] left-[-10%] w-[80vw] h-[80vw] rounded-full mix-blend-multiply filter blur-[100px] animate-pulse transition-colors duration-[2000ms] bg-stone-200/50`}></div>
          <div className={`absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full mix-blend-multiply filter blur-[120px] animate-pulse transition-colors duration-[2000ms] bg-white/60`}></div>
       </div>
 
-      {/* Cinematic Mode Overlay */}
+      {/* Cinematic Mode */}
       {cinematicVideoId && (
           <div className="fixed inset-0 z-[100] bg-black animate-fade-in-up duration-500 flex items-center justify-center">
               <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start z-20 bg-gradient-to-b from-black/80 to-transparent">
@@ -520,7 +501,7 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
           </div>
       )}
 
-      {/* Reading Progress */}
+      {/* Progress Bar */}
       <div className="fixed top-0 left-0 w-full h-1 bg-stone-900/5 z-50">
         <div 
             className="h-full bg-stone-900 transition-all duration-200 ease-out"
@@ -528,7 +509,7 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
         />
       </div>
 
-      {/* Floating Chapter Navigation */}
+      {/* Chapter Nav */}
       <div className="fixed right-6 top-1/2 transform -translate-y-1/2 z-40 hidden lg:flex flex-col items-end space-y-4">
           {sections.map((section, idx) => (
               <div key={section.id} className="group flex items-center space-x-3 cursor-pointer" onClick={() => scrollToSection(idx)}>
@@ -551,7 +532,7 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
             <div className="absolute inset-0 bg-stone-200 z-0" />
         )}
         <div className="absolute inset-0 bg-black/30 z-10 mix-blend-multiply" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#FDFCF8] via-transparent to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-stone-900/50 via-transparent to-transparent z-10" />
         
         <div className="relative z-20 text-center px-6 max-w-4xl mx-auto animate-fade-in-up">
           <div className="inline-block mb-6 px-3 py-1 border border-white/30 text-white/90 text-xs tracking-[0.3em] uppercase rounded-full backdrop-blur-md shadow-lg">
@@ -566,11 +547,12 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
         </div>
 
         <button onClick={onBack} className="absolute top-8 left-8 text-white/80 hover:text-white z-30 flex items-center space-x-2 bg-black/20 px-4 py-2 rounded-full backdrop-blur hover:bg-black/40 transition-all">
-            <span className="text-xs uppercase tracking-widest font-bold">Lukk</span>
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-xs uppercase tracking-widest font-bold">Tilbake</span>
         </button>
       </header>
 
-      {/* Sections Stream */}
+      {/* Main Content Stream */}
       <main className="relative">
         {sections.map((section, index) => (
             <div 

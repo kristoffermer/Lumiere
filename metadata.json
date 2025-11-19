@@ -1,6 +1,6 @@
 {
-  "name": "Lumière Learning",
-  "description": "A cinematic, human-centric course creation and learning platform designed for organic flow and deep engagement.",
+  "name": "Lumière Læring",
+  "description": "En filmatisk, menneske-sentrert plattform for læring og kursbygging, designet for organisk flyt og dypt engasjement.",
   "requestFramePermissions": [
     "microphone",
     "camera"
