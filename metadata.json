@@ -1,0 +1,8 @@
+{
+  "name": "Lumière Learning",
+  "description": "A cinematic, human-centric course creation and learning platform designed for organic flow and deep engagement.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
