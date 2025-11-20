@@ -10,7 +10,8 @@ export default defineConfig(({ mode }) => {
     define: {
       // This allows the app to access process.env.API_KEY in the code
       // It replaces the variable with the actual value during the build process
-      'process.env.API_KEY': JSON.stringify(env.API_KEY)
+      // We use || '' to prevent crashes if the variable is undefined
+      'process.env.API_KEY': JSON.stringify(env.API_KEY || '')
     }
   };
 });

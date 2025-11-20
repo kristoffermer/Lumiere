@@ -2,12 +2,20 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 // Initialize the Gemini client
 // API Key is injected via process.env.API_KEY
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// We provide a fallback check to prevent immediate crash if key is missing
+const apiKey = process.env.API_KEY;
+
+if (!apiKey) {
+  console.warn("Advarsel: Ingen API_KEY funnet i miljøvariabler. AI-funksjoner vil ikke fungere.");
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey || "dummy-key-for-init" });
 
 /**
  * Generates a high-quality image for the course cover using Imagen.
  */
 export const generateCoverImage = async (prompt: string): Promise<string | null> => {
+  if (!apiKey) return null;
   try {
     const response = await ai.models.generateImages({
       model: 'imagen-4.0-generate-001',
@@ -35,6 +43,7 @@ export const generateCoverImage = async (prompt: string): Promise<string | null>
  * Uses gemini-3-pro-preview for video understanding.
  */
 export const analyzeVideoContent = async (file: File, prompt: string): Promise<string> => {
+  if (!apiKey) return "API-nøkkel mangler. Vennligst konfigurer .env filen.";
   try {
     // Convert file to base64
     const base64Data = await new Promise<string>((resolve, reject) => {
@@ -74,6 +83,7 @@ export const analyzeVideoContent = async (file: File, prompt: string): Promise<s
  * Handles general queries from students.
  */
 export const chatWithAI = async (history: { role: string; text: string }[], message: string): Promise<string> => {
+  if (!apiKey) return "Jeg mangler dessverre tilkobling til hjernen min (API-nøkkel mangler).";
   try {
     const chat = ai.chats.create({
       model: 'gemini-3-pro-preview',
@@ -99,6 +109,7 @@ export const chatWithAI = async (history: { role: string; text: string }[], mess
  * Helps the creator structure their course.
  */
 export const generateCourseStructure = async (topic: string): Promise<string> => {
+  if (!apiKey) return JSON.stringify({ title: "Mangler API Nøkkel", description: "Sjekk .env filen din", acts: [] });
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
@@ -150,6 +161,8 @@ export const enrichBlockContent = async (content: string): Promise<{title: strin
     if (youtubeId) {
         thumbnail = `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`;
     }
+
+    if (!apiKey) return { title: "Innhold", description: "Beskrivelse (AI Utilgjengelig)", thumbnail };
 
     try {
         const response = await ai.models.generateContent({
