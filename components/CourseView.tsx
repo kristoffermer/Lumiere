@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Course, BlockType, CourseBlock } from '../types';
 import { MessageSquare, X, Sparkles, Maximize2, Minimize2, ChevronDown, CheckSquare, Square, ArrowLeft } from 'lucide-react';
 import { chatWithAI } from '../services/gemini';
@@ -16,37 +16,42 @@ interface CourseSection {
 }
 
 // Definerer atmosfæriske temaer for seksjoner med tydelige fargeoverganger
-// Endret farger for å være mer distinkte ("svært tydelig") men fortsatt estetiske
 const SECTION_STYLES = [
     { 
         name: 'Paper',
         bg: 'bg-[#FDFCF8]',
-        text: 'text-stone-900'
+        text: 'text-stone-900',
+        hex: '#FDFCF8' 
     },
     { 
         name: 'Soft Sage',
-        bg: 'bg-[#E3F0EA]', // Tydeligere grønn
-        text: 'text-stone-800'
+        bg: 'bg-[#E3F0EA]', 
+        text: 'text-stone-800',
+        hex: '#E3F0EA'
     },
     { 
         name: 'Warm Sand',
-        bg: 'bg-[#FAEBD7]', // Antique White, tydelig varm
-        text: 'text-stone-900'
+        bg: 'bg-[#FAEBD7]',
+        text: 'text-stone-900',
+        hex: '#FAEBD7'
     },
     { 
         name: 'Mist Blue',
-        bg: 'bg-[#E0EEFF]', // Tydeligere blå
-        text: 'text-stone-800'
+        bg: 'bg-[#E0EEFF]', 
+        text: 'text-stone-800',
+        hex: '#E0EEFF'
     },
     { 
         name: 'Rose Quartz',
-        bg: 'bg-[#FFE4E8]', // Tydeligere rosa
-        text: 'text-stone-900'
+        bg: 'bg-[#FFE4E8]', 
+        text: 'text-stone-900',
+        hex: '#FFE4E8'
     },
     {
         name: 'Velvet Grey',
-        bg: 'bg-[#E5E5E5]', // Tydeligere grå
-        text: 'text-stone-800'
+        bg: 'bg-[#E5E5E5]', 
+        text: 'text-stone-800',
+        hex: '#E5E5E5'
     }
 ];
 
@@ -62,7 +67,7 @@ const ScrollReveal: React.FC<{ children: React.ReactNode; delay?: number }> = ({
           observer.disconnect();
         }
       },
-      { threshold: 0.1, rootMargin: "0px 0px -100px 0px" }
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -72,7 +77,7 @@ const ScrollReveal: React.FC<{ children: React.ReactNode; delay?: number }> = ({
     <div
       ref={ref}
       className={`transition-all duration-1000 ease-out transform ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16'
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
       }`}
       style={{ transitionDelay: `${delay}ms` }}
     >
@@ -157,7 +162,7 @@ const MarkdownText: React.FC<{ content: string }> = ({ content }) => {
         if (trimmed.startsWith('```')) {
             const content = trimmed.replace(/^```.*\n/, '').replace(/\n```$/, '');
             return (
-                <div key={idx} className="relative group">
+                <div key={idx} className="relative group max-w-3xl mx-auto">
                     <div className="absolute -top-3 left-4 bg-stone-200 text-stone-600 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm font-bold">
                         Kode
                     </div>
@@ -173,7 +178,7 @@ const MarkdownText: React.FC<{ content: string }> = ({ content }) => {
         }
 
         return (
-            <div key={idx}>
+            <div key={idx} className="max-w-3xl mx-auto">
                 {block.split('\n').map((line, lIdx) => {
                     if (line.startsWith('# ')) return <h1 key={lIdx} className="font-serif text-4xl text-stone-900 mt-8 mb-4 leading-tight border-b border-stone-200 pb-4">{parseFormatting(line.replace('# ', ''))}</h1>;
                     if (line.startsWith('## ')) return <h2 key={lIdx} className="font-serif text-3xl text-stone-800 mt-8 mb-4 font-medium">{parseFormatting(line.replace('## ', ''))}</h2>;
@@ -216,7 +221,7 @@ const TabBlock: React.FC<{ content: string }> = ({ content }) => {
     if (!tabs.length) return null;
 
     return (
-        <div className="my-12 bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-white/60 overflow-hidden">
+        <div className="my-12 bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-white/60 overflow-hidden max-w-5xl mx-auto">
             <div className="p-2 bg-stone-50/80 m-2 rounded-2xl flex space-x-1 overflow-x-auto no-scrollbar">
                 {tabs.map((tab: any, idx: number) => (
                     <button
@@ -337,6 +342,9 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [cinematicVideoId, setCinematicVideoId] = useState<string | null>(null);
+  const mainScrollRef = useRef<HTMLDivElement>(null);
+  
+  // Ref array handles: [0: Hero, 1..N: Sections, N+1: End]
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const sections = useMemo(() => {
@@ -366,29 +374,67 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
     return result;
   }, [course.blocks]);
 
-
   useEffect(() => {
     const handleScroll = () => {
-      const totalScroll = document.documentElement.scrollTop;
-      const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      if (!mainScrollRef.current) return;
+      const container = mainScrollRef.current;
+      const totalScroll = container.scrollTop;
+      const windowHeight = container.scrollHeight - container.clientHeight;
       setScrollProgress(totalScroll / windowHeight);
 
+      // Better intersection detection for sections in a scroll container
+      // Note: Indexes are now 0 (Hero), 1..N (Sections), N+1 (End)
       sectionRefs.current.forEach((ref, index) => {
           if (ref) {
               const rect = ref.getBoundingClientRect();
-              if (rect.top < window.innerHeight * 0.5 && rect.bottom > window.innerHeight * 0.2) {
+              // Check if section is mostly visible in viewport
+              if (rect.top < window.innerHeight * 0.5 && rect.bottom > window.innerHeight * 0.5) {
                   setActiveSectionIndex(index);
               }
           }
       });
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    
+    const container = mainScrollRef.current;
+    if (container) {
+        container.addEventListener('scroll', handleScroll);
+        // Trigger once to set initial state
+        handleScroll();
+    }
+    return () => container?.removeEventListener('scroll', handleScroll);
+  }, [sections]);
 
-  const scrollToSection = (index: number) => {
-      sectionRefs.current[index]?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const scrollToSection = useCallback((index: number) => {
+      const maxIndex = sections.length + 1; // 0=Hero, 1..N=Sections, N+1=End
+      const targetIndex = Math.max(0, Math.min(index, maxIndex));
+      
+      sectionRefs.current[targetIndex]?.scrollIntoView({ behavior: 'smooth' });
+  }, [sections.length]);
+
+  // Keyboard Navigation Listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        // Check if we are in an input field (e.g. Chat)
+        if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+
+        if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+            e.preventDefault();
+            scrollToSection(activeSectionIndex + 1);
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+            e.preventDefault();
+            scrollToSection(activeSectionIndex - 1);
+        } else if (e.key === 'Home') {
+            e.preventDefault();
+            scrollToSection(0);
+        } else if (e.key === 'End') {
+            e.preventDefault();
+            scrollToSection(sections.length + 1);
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeSectionIndex, scrollToSection, sections.length]);
 
   const getYouTubeID = (url: string) => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -400,16 +446,16 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
     switch (block.type) {
       case BlockType.TEXT:
         return (
-          <div className="prose prose-lg prose-stone mx-auto font-light text-stone-700 leading-loose mb-12 max-w-3xl">
+          <div className="prose prose-lg prose-stone mx-auto font-light text-stone-700 leading-loose mb-12 max-w-3xl relative z-10">
             <MarkdownText content={block.content} />
           </div>
         );
       case BlockType.TABS:
-        return <TabBlock content={block.content} />;
+        return <div className="relative z-10"><TabBlock content={block.content} /></div>;
       case BlockType.VIDEO:
         const videoId = getYouTubeID(block.content);
         return (
-          <div className="my-16 group relative max-w-4xl mx-auto">
+          <div className="my-16 group relative w-full max-w-5xl mx-auto z-10">
              <div className="relative aspect-video bg-stone-900 rounded-2xl overflow-hidden shadow-2xl transition-all duration-700 ease-out group-hover:scale-[1.01] group-hover:shadow-3xl">
                 {videoId ? (
                     <>
@@ -442,7 +488,7 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
         );
       case BlockType.IMAGE:
         return (
-           <div className="my-20 group perspective max-w-5xl mx-auto">
+           <div className="my-20 group perspective w-full max-w-5xl mx-auto z-10 relative">
                <div className="relative transform transition-transform duration-700 ease-out group-hover:scale-[1.01]">
                     <img 
                         src={block.content} 
@@ -459,18 +505,48 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
     }
   };
 
-  const activeTheme = SECTION_STYLES[sections[activeSectionIndex]?.styleIndex % SECTION_STYLES.length] || SECTION_STYLES[0];
+  // Determine active theme based on section. 
+  // Index 0 = Hero (use default). 
+  // Index 1..N = Section k (use k-1).
+  const effectiveSection = activeSectionIndex === 0 ? null : sections[activeSectionIndex - 1];
+  const activeTheme = effectiveSection 
+    ? (SECTION_STYLES[effectiveSection.styleIndex % SECTION_STYLES.length] || SECTION_STYLES[0])
+    : SECTION_STYLES[0];
+
+  const activeBackgroundImage = effectiveSection?.header?.metadata?.backgroundImage;
 
   return (
-    <div className={`min-h-screen relative transition-colors duration-[1200ms] ease-in-out ${activeTheme.bg} ${activeTheme.text}`}>
+    <div className={`h-screen w-screen overflow-hidden relative transition-colors duration-[1200ms] ease-in-out ${activeTheme.bg} ${activeTheme.text}`}>
       
+      {/* Fixed Background Layer for Transitions with Parallax Effect */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+          {/* Render background image if present for active section */}
+          <div 
+            className={`absolute inset-0 transition-all duration-[1500ms] ease-in-out ${activeBackgroundImage ? 'opacity-40' : 'opacity-0'}`}
+          >
+             {activeBackgroundImage && (
+                 <img 
+                    src={activeBackgroundImage} 
+                    className="w-full h-full object-cover filter blur-[2px] transition-transform duration-[2000ms] ease-out"
+                    style={{ 
+                        // Gentle parallax/pan effect based on active section index
+                        transform: `scale(1.05) translateY(${activeSectionIndex * 2}%)` 
+                    }}
+                    alt="Atmosphere"
+                 />
+             )}
+          </div>
+          {/* Overlay Gradients to ensure text readability regardless of image */}
+          <div className={`absolute inset-0 bg-gradient-to-b from-${activeTheme.bg}/90 via-${activeTheme.bg}/60 to-${activeTheme.bg} transition-colors duration-[1500ms]`}></div>
+      </div>
+
       {/* Global Orbs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10 opacity-30">
          <div className={`absolute top-[-20%] left-[-10%] w-[80vw] h-[80vw] rounded-full mix-blend-multiply filter blur-[100px] animate-pulse transition-colors duration-[2000ms] bg-stone-200/50`}></div>
          <div className={`absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full mix-blend-multiply filter blur-[120px] animate-pulse transition-colors duration-[2000ms] bg-white/60`}></div>
       </div>
 
-      {/* Cinematic Mode */}
+      {/* Cinematic Mode Video Overlay */}
       {cinematicVideoId && (
           <div className="fixed inset-0 z-[100] bg-black animate-fade-in-up duration-500 flex items-center justify-center">
               <div className="absolute top-0 left-0 w-full p-8 flex justify-between items-start z-20 bg-gradient-to-b from-black/80 to-transparent">
@@ -511,64 +587,87 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
 
       {/* Chapter Nav */}
       <div className="fixed right-6 top-1/2 transform -translate-y-1/2 z-40 hidden lg:flex flex-col items-end space-y-4">
+          {/* Start Dot */}
+          <div className="group flex items-center space-x-3 cursor-pointer" onClick={() => scrollToSection(0)}>
+               <span className={`text-xs font-medium uppercase tracking-widest transition-all duration-300 ${activeSectionIndex === 0 ? 'text-stone-900 opacity-100 translate-x-0' : 'text-stone-400 opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0'}`}>
+                   Start
+               </span>
+               <div className={`w-2 h-2 rounded-full transition-all duration-300 ${activeSectionIndex === 0 ? 'bg-stone-900 scale-125' : 'bg-stone-300 group-hover:bg-stone-400'}`} />
+          </div>
+
+          {/* Section Dots */}
           {sections.map((section, idx) => (
-              <div key={section.id} className="group flex items-center space-x-3 cursor-pointer" onClick={() => scrollToSection(idx)}>
-                   <span className={`text-xs font-medium uppercase tracking-widest transition-all duration-300 ${activeSectionIndex === idx ? 'text-stone-900 opacity-100 translate-x-0' : 'text-stone-400 opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0'}`}>
+              <div key={section.id} className="group flex items-center space-x-3 cursor-pointer" onClick={() => scrollToSection(idx + 1)}>
+                   <span className={`text-xs font-medium uppercase tracking-widest transition-all duration-300 ${activeSectionIndex === idx + 1 ? 'text-stone-900 opacity-100 translate-x-0' : 'text-stone-400 opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0'}`}>
                        {section.header ? section.header.content.replace('Act ', 'Akt ') : 'Intro'}
                    </span>
-                   <div className={`w-2 h-2 rounded-full transition-all duration-300 ${activeSectionIndex === idx ? 'bg-stone-900 scale-125' : 'bg-stone-300 group-hover:bg-stone-400'}`} />
+                   <div className={`w-2 h-2 rounded-full transition-all duration-300 ${activeSectionIndex === idx + 1 ? 'bg-stone-900 scale-125' : 'bg-stone-300 group-hover:bg-stone-400'}`} />
               </div>
           ))}
       </div>
 
-      {/* Hero */}
-      <header className="relative h-[90vh] flex items-center justify-center overflow-hidden">
-        {course.coverImage ? (
-            <div 
-                className="absolute inset-0 bg-cover bg-center z-0 grayscale-[10%]"
-                style={{ backgroundImage: `url(${course.coverImage})` }}
-            />
-        ) : (
-            <div className="absolute inset-0 bg-stone-200 z-0" />
-        )}
-        <div className="absolute inset-0 bg-black/30 z-10 mix-blend-multiply" />
-        <div className="absolute inset-0 bg-gradient-to-t from-stone-900/50 via-transparent to-transparent z-10" />
-        
-        <div className="relative z-20 text-center px-6 max-w-4xl mx-auto animate-fade-in-up">
-          <div className="inline-block mb-6 px-3 py-1 border border-white/30 text-white/90 text-xs tracking-[0.3em] uppercase rounded-full backdrop-blur-md shadow-lg">
-            {course.category || 'Originalt Kurs'}
-          </div>
-          <h1 className="font-serif text-6xl md:text-8xl text-white mb-8 leading-[0.9] drop-shadow-2xl">{course.title}</h1>
-          <p className="text-xl text-white/90 font-light leading-relaxed max-w-2xl mx-auto drop-shadow-md">{course.description}</p>
+      {/* Main Content Stream - Scroll Container */}
+      <main 
+        ref={mainScrollRef}
+        className="h-full overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth relative z-10 focus:outline-none"
+        tabIndex={0} // Make div focusable for keyboard events just in case, though window listener handles it
+      >
           
-          <div className="mt-12 animate-bounce">
-             <ChevronDown className="w-8 h-8 text-white/50 mx-auto" />
-          </div>
-        </div>
+        {/* Hero Section - Index 0 */}
+        <header 
+            ref={(el) => { sectionRefs.current[0] = el }} 
+            className="snap-start min-h-screen relative flex items-center justify-center overflow-hidden"
+        >
+            {course.coverImage ? (
+                <div 
+                    className="absolute inset-0 bg-cover bg-center z-0 grayscale-[10%]"
+                    style={{ backgroundImage: `url(${course.coverImage})` }}
+                />
+            ) : (
+                <div className="absolute inset-0 bg-stone-200 z-0" />
+            )}
+            <div className="absolute inset-0 bg-black/30 z-10 mix-blend-multiply" />
+            <div className="absolute inset-0 bg-gradient-to-t from-stone-900/50 via-transparent to-transparent z-10" />
+            
+            <div className="relative z-20 text-center px-6 max-w-4xl mx-auto animate-fade-in-up">
+            <div className="inline-block mb-6 px-3 py-1 border border-white/30 text-white/90 text-xs tracking-[0.3em] uppercase rounded-full backdrop-blur-md shadow-lg">
+                {course.category || 'Originalt Kurs'}
+            </div>
+            <h1 className="font-serif text-6xl md:text-8xl text-white mb-8 leading-[0.9] drop-shadow-2xl">{course.title}</h1>
+            <p className="text-xl text-white/90 font-light leading-relaxed max-w-2xl mx-auto drop-shadow-md">{course.description}</p>
+            
+            <div className="mt-12 animate-bounce cursor-pointer" onClick={() => scrollToSection(1)}>
+                <ChevronDown className="w-8 h-8 text-white/50 mx-auto hover:text-white transition-colors" />
+            </div>
+            </div>
 
-        <button onClick={onBack} className="absolute top-8 left-8 text-white/80 hover:text-white z-30 flex items-center space-x-2 bg-black/20 px-4 py-2 rounded-full backdrop-blur hover:bg-black/40 transition-all">
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-xs uppercase tracking-widest font-bold">Tilbake</span>
-        </button>
-      </header>
+            <button onClick={onBack} className="absolute top-8 left-8 text-white/80 hover:text-white z-30 flex items-center space-x-2 bg-black/20 px-4 py-2 rounded-full backdrop-blur hover:bg-black/40 transition-all">
+                <ArrowLeft className="w-4 h-4" />
+                <span className="text-xs uppercase tracking-widest font-bold">Tilbake</span>
+            </button>
+        </header>
 
-      {/* Main Content Stream */}
-      <main className="relative">
+        {/* Content Sections - Index 1..N */}
         {sections.map((section, index) => (
-            <div 
+            <section 
                 key={section.id} 
-                ref={(el) => { sectionRefs.current[index] = el }}
-                className={`relative min-h-[80vh] py-24 md:py-32 px-6 flex flex-col justify-center`}
+                ref={(el) => { sectionRefs.current[index + 1] = el }}
+                className="snap-start min-h-screen relative py-24 md:py-32 px-6 flex flex-col justify-center items-center"
             >
-                <div className="relative z-10 max-w-4xl mx-auto w-full">
+                {/* Content Wrapper */}
+                <div className={`relative z-10 w-full max-w-6xl mx-auto transition-all duration-1000 ${
+                    section.header?.metadata?.backgroundImage 
+                        ? 'bg-white/95 backdrop-blur-xl shadow-2xl rounded-3xl p-8 md:p-16 border border-white/40 my-12' 
+                        : ''
+                }`}>
                     {/* Section Header */}
                     {section.header && (
                          <ScrollReveal>
                             <div className="text-center mb-20">
                                 <div className="inline-block w-12 h-1 bg-stone-900 mb-8 opacity-20"></div>
-                                <h2 className="font-serif text-4xl md:text-6xl text-stone-900 mb-6 leading-tight">{section.header.content}</h2>
+                                <h2 className="font-serif text-4xl md:text-6xl text-stone-900 mb-6 leading-tight drop-shadow-sm">{section.header.content}</h2>
                                 {section.header.metadata?.description && (
-                                <p className="text-lg text-stone-500 max-w-xl mx-auto font-light italic font-serif">
+                                <p className="text-lg text-stone-600 max-w-xl mx-auto font-light italic font-serif">
                                     "{section.header.metadata.description}"
                                 </p>
                                 )}
@@ -577,7 +676,7 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
                     )}
 
                     {/* Section Blocks */}
-                    <div className="space-y-8">
+                    <div className="space-y-8 w-full">
                         {section.blocks.map((block, bIdx) => (
                             <ScrollReveal key={block.id} delay={bIdx * 100}>
                                 {renderBlock(block)}
@@ -585,10 +684,14 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
                         ))}
                     </div>
                 </div>
-            </div>
+            </section>
         ))}
 
-        <div className="py-32 text-center relative z-10">
+        {/* End Section - Index N+1 */}
+        <div 
+            ref={(el) => { sectionRefs.current[sections.length + 1] = el }}
+            className="snap-start h-[50vh] flex flex-col items-center justify-center text-center relative z-10 bg-white/50 backdrop-blur-sm"
+        >
             <h3 className="font-serif text-3xl text-stone-900 mb-4">Slutt.</h3>
             <button onClick={onBack} className="text-stone-500 hover:text-stone-900 underline decoration-1 underline-offset-8 transition-all">Tilbake til biblioteket</button>
         </div>

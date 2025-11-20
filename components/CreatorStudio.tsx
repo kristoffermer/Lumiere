@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Course, CourseBlock, BlockType } from '../types';
-import { Plus, Image as ImageIcon, Type, Youtube, Wand2, Video, Loader2, ChevronLeft, Sparkles, LayoutTemplate, Bold, Italic, List, Folder, Link as LinkIcon, Trash2, Upload, Search, GripVertical, Heading1, Heading2, Heading3, Quote, Code, CheckSquare, Minus, AlignLeft, MoreHorizontal, Table, FileCode, Tag } from 'lucide-react';
+import { Plus, Image as ImageIcon, Type, Youtube, Wand2, Video, Loader2, ChevronLeft, Sparkles, LayoutTemplate, Bold, Italic, List, Folder, Link as LinkIcon, Trash2, Upload, Search, GripVertical, Heading1, Heading2, Heading3, Quote, Code, CheckSquare, Minus, AlignLeft, MoreHorizontal, Table, FileCode, Tag, X } from 'lucide-react';
 import { enrichBlockContent, generateCoverImage, generateCourseStructure, analyzeVideoContent } from '../services/gemini';
 
 interface CreatorStudioProps {
@@ -35,7 +35,10 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageUploadRef = useRef<HTMLInputElement>(null);
   const coverUploadRef = useRef<HTMLInputElement>(null);
+  const headerBgUploadRef = useRef<HTMLInputElement>(null);
+
   const [activeImageBlockId, setActiveImageBlockId] = useState<string | null>(null);
+  const [activeHeaderBlockId, setActiveHeaderBlockId] = useState<string | null>(null);
 
   // Load initial data if editing
   useEffect(() => {
@@ -200,6 +203,37 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
           updateBlockContent(id, `https://source.unsplash.com/featured/1200x800?${encodeURIComponent(keyword)}`);
       }
   };
+  
+  // Header Background Helpers
+  const handleHeaderBgUploadClick = (blockId: string) => {
+      setActiveHeaderBlockId(blockId);
+      headerBgUploadRef.current?.click();
+  };
+
+  const handleHeaderBgFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !activeHeaderBlockId) return;
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+          updateBlockMetadata(activeHeaderBlockId, 'backgroundImage', reader.result as string);
+          setActiveHeaderBlockId(null);
+          if(headerBgUploadRef.current) headerBgUploadRef.current.value = ''; // reset
+      };
+      reader.readAsDataURL(file);
+  };
+
+  const handleHeaderBackgroundUnsplash = (id: string) => {
+      const keyword = prompt("Skriv inn et søkeord for bakgrunnen (f.eks. 'Abstrakt', 'Skyer'):");
+      if (keyword) {
+          updateBlockMetadata(id, 'backgroundImage', `https://source.unsplash.com/featured/1600x900?${encodeURIComponent(keyword)}`);
+      }
+  };
+  
+  const handleHeaderBackgroundUrl = (id: string) => {
+      const url = prompt("Lim inn URL til bakgrunnsbilde:");
+      if (url) updateBlockMetadata(id, 'backgroundImage', url);
+  };
 
   // Video Analysis
   const handleVideoAnalysis = () => {
@@ -224,13 +258,52 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
 
   // Generic Updates
   const updateBlockContent = (id: string, newContent: string) => {
-      setBlocks(blocks.map(b => b.id === id ? { ...b, content: newContent } : b));
+      // Check for auto-conversion of YouTube links in Text blocks
+      const block = blocks.find(b => b.id === id);
+      if (block && block.type === BlockType.TEXT) {
+          const trimmed = newContent.trim();
+          // Strict check: Content must be ONLY a YouTube URL (no spaces, no newlines)
+          const isYouTubeUrl = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/.test(trimmed);
+          const hasSpace = trimmed.includes(' ') || trimmed.includes('\n');
+
+          if (isYouTubeUrl && !hasSpace) {
+              const videoId = getYouTubeID(trimmed);
+              if (videoId) {
+                   // Convert to Video Block
+                   setBlocks(prev => prev.map(b => {
+                       if (b.id === id) {
+                           return {
+                               ...b,
+                               type: BlockType.VIDEO,
+                               content: trimmed,
+                               metadata: { title: "Henter video...", description: "Laster metadata..." }
+                           };
+                       }
+                       return b;
+                   }));
+                   
+                   // Enrich with metadata
+                   enrichBlockContent(trimmed).then(metadata => {
+                        setBlocks(prev => prev.map(b => b.id === id ? { ...b, metadata } : b));
+                   });
+                   return;
+              }
+          }
+      }
+
+      setBlocks(prev => prev.map(b => b.id === id ? { ...b, content: newContent } : b));
   };
 
-  const updateBlockMetadata = (id: string, field: string, value: string) => {
+  const updateBlockMetadata = (id: string, field: string, value: string | undefined) => {
     setBlocks(blocks.map(b => {
         if (b.id === id) {
-            return { ...b, metadata: { ...b.metadata, [field]: value } };
+            const newMeta = { ...b.metadata };
+            if (value === undefined) {
+                delete newMeta[field as keyof typeof newMeta];
+            } else {
+                (newMeta as any)[field] = value;
+            }
+            return { ...b, metadata: newMeta };
         }
         return b;
     }));
@@ -322,6 +395,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
       <input type="file" ref={fileInputRef} className="hidden" accept="video/*" onChange={processVideoFile} />
       <input type="file" ref={imageUploadRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
       <input type="file" ref={coverUploadRef} className="hidden" accept="image/*" onChange={handleCoverUpload} />
+      <input type="file" ref={headerBgUploadRef} className="hidden" accept="image/*" onChange={handleHeaderBgFileChange} />
 
       {/* Top Bar */}
       <div className="sticky top-0 bg-white/80 backdrop-blur border-b border-stone-200 px-6 py-4 flex justify-between items-center z-40">
@@ -482,6 +556,32 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                 className="w-full bg-transparent outline-none text-stone-400 italic mt-2 text-sm"
                                 placeholder="Seksjonstema eller beskrivelse..."
                                 />
+
+                                {/* Background Image Settings */}
+                                <div className="mt-4 flex items-center gap-3 opacity-50 hover:opacity-100 transition-opacity">
+                                    <span className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Bakgrunnsbilde:</span>
+                                    {block.metadata?.backgroundImage ? (
+                                        <div className="flex items-center gap-2 bg-stone-100 px-2 py-1 rounded-md border border-stone-200">
+                                            <img src={block.metadata.backgroundImage} className="w-6 h-6 rounded object-cover" alt="preview"/>
+                                            <span className="text-xs text-stone-500 truncate max-w-[100px]">Bilde valgt</span>
+                                            <button onClick={() => updateBlockMetadata(block.id, 'backgroundImage', undefined)} className="text-stone-400 hover:text-red-500">
+                                                <X className="w-3 h-3"/>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                             <button onClick={() => handleHeaderBgUploadClick(block.id)} className="p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded" title="Last opp">
+                                                <Upload className="w-4 h-4"/>
+                                            </button>
+                                            <button onClick={() => handleHeaderBackgroundUnsplash(block.id)} className="p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded" title="Søk Unsplash">
+                                                <Search className="w-4 h-4"/>
+                                            </button>
+                                            <button onClick={() => handleHeaderBackgroundUrl(block.id)} className="p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded" title="URL">
+                                                <LinkIcon className="w-4 h-4"/>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 

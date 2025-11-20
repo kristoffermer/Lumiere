@@ -17,6 +17,7 @@ export interface CourseBlock {
     caption?: string;
     aiGenerated?: boolean;
     thumbnail?: string; // For video thumbnails
+    backgroundImage?: string; // For section backgrounds (Header blocks)
   };
 }
 
