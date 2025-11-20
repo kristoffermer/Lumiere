@@ -1,8 +1,5 @@
 // services/gemini.ts
 
-// Note: Google GenAI imports removed to prevent build errors if dependencies or keys are missing.
-// import { GoogleGenAI, Type } from "@google/genai"; 
-
 /**
  * Generates a high-quality image for the course cover using Imagen.
  * (MOCKED: Returns null to avoid API usage)
