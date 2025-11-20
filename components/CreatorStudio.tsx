@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Course, CourseBlock, BlockType } from '../types';
-import { Plus, Image as ImageIcon, Type, Youtube, Wand2, Video, Loader2, ChevronLeft, Sparkles, LayoutTemplate, Bold, Italic, List, Folder, Link as LinkIcon, Trash2, Upload, Search, GripVertical, Heading1, Heading2, Heading3, Quote, Code, CheckSquare, Minus, AlignLeft, MoreHorizontal, Table, FileCode, Tag, X } from 'lucide-react';
+import { Plus, Image as ImageIcon, Type, Youtube, Wand2, Video, Loader2, ChevronLeft, Sparkles, LayoutTemplate, Bold, Italic, List, Folder, Link as LinkIcon, Trash2, Upload, Search, GripVertical, Heading1, Heading2, Heading3, Quote, Code, CheckSquare, Minus, AlignLeft, MoreHorizontal, Table, FileCode, Tag, X, Moon, Sun } from 'lucide-react';
 import { enrichBlockContent, generateCoverImage, generateCourseStructure, analyzeVideoContent } from '../services/gemini';
 
 interface CreatorStudioProps {
@@ -12,9 +12,11 @@ interface CreatorStudioProps {
 // Helper for Tabs logic
 interface TabItem {
     label: string;
+    subtitle?: string; // Replaces "Steg X"
     content: string;
     icon?: string; // Emoji or icon name
     image?: string; // Background image for the content pane
+    variant?: 'dark' | 'light'; // Cinematic dark or clean light
 }
 
 export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onSave, onCancel }) => {
@@ -137,8 +139,8 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
 
   const addTabsBlock = () => {
       const initialTabs: TabItem[] = [
-          { label: 'Steg 1', content: 'Beskrivelse av første steg...', icon: '1' },
-          { label: 'Steg 2', content: 'Mer informasjon her...', icon: '2' }
+          { label: 'Hovedtittel', subtitle: 'Steg 1', content: 'Beskrivelse av første steg...', icon: '1', variant: 'dark' },
+          { label: 'Detaljer', subtitle: 'Steg 2', content: 'Mer informasjon her...', icon: '2', variant: 'light' }
       ];
       setBlocks([...blocks, {
           id: Date.now().toString(),
@@ -620,7 +622,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                     return (
                                         <div className="bg-stone-50 rounded-xl border border-stone-200 overflow-hidden flex flex-col md:flex-row">
                                             {/* Vertical Tab List (Left Side) */}
-                                            <div className="w-full md:w-1/3 bg-stone-100/50 border-r border-stone-200 p-2 overflow-y-auto max-h-[400px]">
+                                            <div className="w-full md:w-1/3 bg-stone-100/50 border-r border-stone-200 p-2 overflow-y-auto max-h-[500px]">
                                                 <div className="space-y-1">
                                                     {tabs.map((tab, tIdx) => (
                                                         <div 
@@ -637,8 +639,15 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                                                 : 'text-stone-500 hover:bg-white/50 hover:text-stone-700'
                                                             } ${draggedTabIndex === tIdx ? 'opacity-50' : ''}`}
                                                         >
-                                                            <span className="w-6 h-6 flex items-center justify-center bg-stone-200 rounded-full text-xs font-bold text-stone-600">{tab.icon || (tIdx + 1)}</span>
-                                                            <span className="font-medium truncate flex-1">{tab.label || 'Uten navn'}</span>
+                                                            <span className="w-6 h-6 flex items-center justify-center bg-stone-200 rounded-full text-xs font-bold text-stone-600 flex-shrink-0">{tab.icon || (tIdx + 1)}</span>
+                                                            <div className="flex-1 overflow-hidden">
+                                                                <div className="text-[10px] text-stone-400 font-bold uppercase tracking-wider truncate">
+                                                                    {tab.subtitle || `Steg ${tIdx + 1}`}
+                                                                </div>
+                                                                <div className="font-medium truncate">
+                                                                    {tab.label || 'Uten navn'}
+                                                                </div>
+                                                            </div>
                                                             <button 
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
@@ -654,7 +663,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                                     ))}
                                                     <button 
                                                         onClick={() => {
-                                                            const newTabs = [...tabs, { label: 'Nytt Steg', content: '', icon: `${tabs.length + 1}` }];
+                                                            const newTabs = [...tabs, { label: 'Nytt Steg', subtitle: '', content: '', icon: `${tabs.length + 1}`, variant: 'dark' }];
                                                             updateBlockContent(block.id, JSON.stringify(newTabs));
                                                             setActiveTabEdits(prev => ({ ...prev, [block.id]: newTabs.length - 1 }));
                                                         }}
@@ -669,8 +678,8 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                             <div className="w-full md:w-2/3 p-6 bg-white">
                                                 {tabs[activeIndex] ? (
                                                     <>
-                                                        <div className="grid grid-cols-4 gap-4 mb-4">
-                                                            <div className="col-span-1">
+                                                        <div className="flex gap-4 mb-4">
+                                                            <div className="w-16 flex-shrink-0">
                                                                 <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Ikon</label>
                                                                 <input 
                                                                     value={tabs[activeIndex].icon || ''}
@@ -679,36 +688,65 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                                                     placeholder="#"
                                                                 />
                                                             </div>
-                                                            <div className="col-span-3">
-                                                                <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Tittel</label>
+                                                            <div className="flex-1">
+                                                                <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Undertittel (Valgfri)</label>
                                                                 <input 
-                                                                    value={tabs[activeIndex].label}
-                                                                    onChange={(e) => updateTab(activeIndex, 'label', e.target.value)}
+                                                                    value={tabs[activeIndex].subtitle || ''}
+                                                                    onChange={(e) => updateTab(activeIndex, 'subtitle', e.target.value)}
                                                                     className="w-full bg-stone-50 border border-stone-200 rounded-md px-3 py-1.5 font-medium text-stone-800 outline-none focus:border-stone-400 text-sm"
-                                                                    placeholder="f.eks. Mekanisk Filter"
+                                                                    placeholder="f.eks. Steg 1, Introduksjon..."
                                                                 />
                                                             </div>
                                                         </div>
-                                                        
+
                                                         <div className="mb-4">
-                                                             <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Bakgrunnsbilde (URL)</label>
-                                                             <div className="flex gap-2">
-                                                                <input 
-                                                                    value={tabs[activeIndex].image || ''}
-                                                                    onChange={(e) => updateTab(activeIndex, 'image', e.target.value)}
-                                                                    className="flex-1 bg-stone-50 border border-stone-200 rounded-md px-3 py-1.5 text-xs outline-none focus:border-stone-400"
-                                                                    placeholder="https://..."
-                                                                />
-                                                                <button 
-                                                                    onClick={() => {
-                                                                        const kw = prompt("Søk Unsplash:");
-                                                                        if(kw) updateTab(activeIndex, 'image', `https://source.unsplash.com/featured/1600x900?${encodeURIComponent(kw)}`);
-                                                                    }}
-                                                                    className="px-2 bg-stone-100 rounded hover:bg-stone-200 text-stone-500"
-                                                                >
-                                                                    <Search className="w-3 h-3"/>
-                                                                </button>
-                                                             </div>
+                                                             <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Hovedtittel</label>
+                                                             <input 
+                                                                 value={tabs[activeIndex].label}
+                                                                 onChange={(e) => updateTab(activeIndex, 'label', e.target.value)}
+                                                                 className="w-full bg-stone-50 border border-stone-200 rounded-md px-3 py-1.5 font-medium text-stone-800 outline-none focus:border-stone-400 text-lg"
+                                                                 placeholder="f.eks. Mekanisk Filter"
+                                                             />
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-2 gap-4 mb-4">
+                                                            <div>
+                                                                <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Utseende</label>
+                                                                <div className="flex rounded-lg bg-stone-100 p-1 border border-stone-200">
+                                                                    <button 
+                                                                        onClick={() => updateTab(activeIndex, 'variant', 'dark')}
+                                                                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded text-xs font-bold uppercase tracking-wide transition-all ${(!tabs[activeIndex].variant || tabs[activeIndex].variant === 'dark') ? 'bg-stone-800 text-white shadow-sm' : 'text-stone-500 hover:bg-white/50'}`}
+                                                                    >
+                                                                        <Moon className="w-3 h-3"/> Mørk
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => updateTab(activeIndex, 'variant', 'light')}
+                                                                        className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded text-xs font-bold uppercase tracking-wide transition-all ${(tabs[activeIndex].variant === 'light') ? 'bg-white text-stone-900 shadow-sm border border-stone-200' : 'text-stone-500 hover:bg-white/50'}`}
+                                                                    >
+                                                                        <Sun className="w-3 h-3"/> Lys
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Bakgrunn (URL)</label>
+                                                                <div className="flex gap-1">
+                                                                    <input 
+                                                                        value={tabs[activeIndex].image || ''}
+                                                                        onChange={(e) => updateTab(activeIndex, 'image', e.target.value)}
+                                                                        className="flex-1 bg-stone-50 border border-stone-200 rounded-md px-2 py-1.5 text-xs outline-none focus:border-stone-400"
+                                                                        placeholder="https://..."
+                                                                    />
+                                                                    <button 
+                                                                        onClick={() => {
+                                                                            const kw = prompt("Søk Unsplash:");
+                                                                            if(kw) updateTab(activeIndex, 'image', `https://source.unsplash.com/featured/1600x900?${encodeURIComponent(kw)}`);
+                                                                        }}
+                                                                        className="px-2 bg-stone-100 rounded hover:bg-stone-200 text-stone-500 border border-stone-200"
+                                                                    >
+                                                                        <Search className="w-3 h-3"/>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
                                                         </div>
 
                                                         <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Innhold (Markdown)</label>

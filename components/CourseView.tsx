@@ -221,6 +221,7 @@ const TabBlock: React.FC<{ content: string }> = ({ content }) => {
     if (!tabs.length) return null;
 
     const activeItem = tabs[activeTab];
+    const isLight = activeItem.variant === 'light';
 
     return (
         <div className="my-16 max-w-7xl mx-auto w-full px-2 md:px-0">
@@ -255,9 +256,12 @@ const TabBlock: React.FC<{ content: string }> = ({ content }) => {
 
                                     {/* Label Content */}
                                     <div className="ml-5 flex-1">
-                                        <div className={`text-[10px] uppercase tracking-widest font-bold mb-1 transition-colors ${isActive ? 'text-stone-500' : 'text-stone-400'}`}>
-                                            Steg 0{idx + 1}
-                                        </div>
+                                        {/* Subtitle - No longer hardcoded */}
+                                        {tab.subtitle && (
+                                            <div className={`text-[10px] uppercase tracking-widest font-bold mb-1 transition-colors ${isActive ? 'text-stone-500' : 'text-stone-400'}`}>
+                                                {tab.subtitle}
+                                            </div>
+                                        )}
                                         <div className={`font-serif text-lg leading-tight transition-colors ${isActive ? 'text-stone-900 font-bold' : 'text-stone-600 font-medium'}`}>
                                             {tab.label}
                                         </div>
@@ -275,7 +279,7 @@ const TabBlock: React.FC<{ content: string }> = ({ content }) => {
 
                 {/* Right Side: Cinematic Content Card */}
                 <div className="lg:col-span-8">
-                    <div className="relative rounded-3xl overflow-hidden shadow-2xl min-h-[500px] flex flex-col transition-all duration-500 bg-stone-900">
+                    <div className={`relative rounded-3xl overflow-hidden shadow-2xl min-h-[500px] flex flex-col transition-all duration-500 ${isLight ? 'bg-white ring-1 ring-stone-200' : 'bg-stone-900'}`}>
                         
                         {/* Dynamic Background */}
                         <div className="absolute inset-0 z-0 transition-opacity duration-700 ease-in-out">
@@ -288,15 +292,15 @@ const TabBlock: React.FC<{ content: string }> = ({ content }) => {
                                         style={{ animationDuration: '1.5s' }}
                                         alt="Bakgrunn"
                                     />
-                                    {/* Gradient overlay for text readability */}
-                                    <div className="absolute inset-0 bg-gradient-to-r from-stone-900/90 via-stone-900/60 to-transparent md:via-stone-900/40"></div>
-                                    <div className="absolute inset-0 bg-gradient-to-t from-stone-900 via-transparent to-transparent opacity-80"></div>
+                                    {/* Gradient overlay for text readability - varies by theme */}
+                                    <div className={`absolute inset-0 bg-gradient-to-r ${isLight ? 'from-white/95 via-white/70 to-white/40' : 'from-stone-900/90 via-stone-900/60 to-transparent'} md:via-opacity-40`}></div>
+                                    <div className={`absolute inset-0 bg-gradient-to-t ${isLight ? 'from-white via-white/50 to-transparent' : 'from-stone-900 via-transparent to-transparent'} opacity-80`}></div>
                                 </>
                             ) : (
                                 /* Fallback Abstract Background */
-                                <div className="w-full h-full bg-gradient-to-br from-stone-800 to-black">
-                                    <div className="absolute -right-20 -top-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]"></div>
-                                    <div className="absolute -left-20 -bottom-20 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px]"></div>
+                                <div className={`w-full h-full bg-gradient-to-br ${isLight ? 'from-stone-100 to-white' : 'from-stone-800 to-black'}`}>
+                                    <div className={`absolute -right-20 -top-20 w-96 h-96 rounded-full blur-[100px] ${isLight ? 'bg-blue-200/20' : 'bg-blue-500/10'}`}></div>
+                                    <div className={`absolute -left-20 -bottom-20 w-96 h-96 rounded-full blur-[100px] ${isLight ? 'bg-purple-200/20' : 'bg-purple-500/10'}`}></div>
                                 </div>
                             )}
                         </div>
@@ -304,14 +308,14 @@ const TabBlock: React.FC<{ content: string }> = ({ content }) => {
                         {/* Content Layer */}
                         <div className="relative z-10 p-8 md:p-12 flex flex-col h-full justify-center">
                              <div key={activeTab} className="animate-fade-in-up">
-                                <div className="inline-flex items-center space-x-2 mb-6 px-3 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-md w-fit">
-                                    <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
-                                    <span className="text-xs font-bold text-white tracking-widest uppercase">
+                                <div className={`inline-flex items-center space-x-2 mb-6 px-3 py-1 rounded-full border backdrop-blur-md w-fit ${isLight ? 'bg-stone-900/5 border-stone-900/10' : 'bg-white/10 border-white/10'}`}>
+                                    <span className={`w-2 h-2 rounded-full animate-pulse ${isLight ? 'bg-stone-900' : 'bg-white'}`}></span>
+                                    <span className={`text-xs font-bold tracking-widest uppercase ${isLight ? 'text-stone-900' : 'text-white'}`}>
                                         {activeItem.label}
                                     </span>
                                 </div>
 
-                                <div className="prose prose-invert prose-lg max-w-none text-stone-100 leading-relaxed font-light">
+                                <div className={`prose prose-lg max-w-none leading-relaxed font-light ${isLight ? 'prose-stone text-stone-800' : 'prose-invert text-stone-100'}`}>
                                     <MarkdownText content={activeItem.content} />
                                 </div>
                              </div>
