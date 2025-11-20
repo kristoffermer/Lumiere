@@ -1,158 +1,71 @@
-import { GoogleGenAI, Type } from "@google/genai";
+// services/gemini.ts
 
-// Initialize the Gemini client
-// API Key is injected via process.env.API_KEY
-// We provide a fallback check to prevent immediate crash if key is missing
-const apiKey = process.env.API_KEY;
-
-if (!apiKey) {
-  console.warn("Advarsel: Ingen API_KEY funnet i miljøvariabler. AI-funksjoner vil ikke fungere.");
-}
-
-const ai = new GoogleGenAI({ apiKey: apiKey || "dummy-key-for-init" });
+// Note: Google GenAI imports removed to prevent build errors if dependencies or keys are missing.
+// import { GoogleGenAI, Type } from "@google/genai"; 
 
 /**
  * Generates a high-quality image for the course cover using Imagen.
+ * (MOCKED: Returns null to avoid API usage)
  */
 export const generateCoverImage = async (prompt: string): Promise<string | null> => {
-  if (!apiKey) return null;
-  try {
-    const response = await ai.models.generateImages({
-      model: 'imagen-4.0-generate-001',
-      prompt: `Cinematic, high-resolution editorial photography style: ${prompt}. Soft lighting, minimalist, aesthetic, 4k.`,
-      config: {
-        numberOfImages: 1,
-        outputMimeType: 'image/jpeg',
-        aspectRatio: '16:9',
-      },
-    });
-
-    if (response.generatedImages && response.generatedImages.length > 0) {
-      const base64ImageBytes = response.generatedImages[0].image.imageBytes;
-      return `data:image/jpeg;base64,${base64ImageBytes}`;
-    }
-    return null;
-  } catch (error) {
-    console.error("Error generating image:", error);
-    return null;
-  }
+  console.log("AI (Imagen) disabled. Prompt:", prompt);
+  return null;
 };
 
 /**
  * Analyzes a video file to extract key takeaways or summary.
- * Uses gemini-3-pro-preview for video understanding.
+ * (MOCKED: Returns a static string)
  */
 export const analyzeVideoContent = async (file: File, prompt: string): Promise<string> => {
-  if (!apiKey) return "API-nøkkel mangler. Vennligst konfigurer .env filen.";
-  try {
-    // Convert file to base64
-    const base64Data = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = (reader.result as string).split(',')[1];
-        resolve(base64String);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              mimeType: file.type,
-              data: base64Data
-            }
-          },
-          { text: prompt + " Answer in Norwegian." }
-        ]
-      }
-    });
-
-    return response.text || "Kunne ikke analysere videoen.";
-  } catch (error) {
-    console.error("Error analyzing video:", error);
-    return "Feil under videoanalyse. Vennligst prøv igjen.";
-  }
+  console.log("AI (Video) disabled. Prompt:", prompt);
+  return "AI-analyse er midlertidig deaktivert for å sikre stabil drift av applikasjonen. (Dette er en simulert respons).";
 };
 
 /**
  * Chat with the AI assistant using Gemini 3 Pro.
- * Handles general queries from students.
+ * (MOCKED: Returns a friendly 'offline' message)
  */
 export const chatWithAI = async (history: { role: string; text: string }[], message: string): Promise<string> => {
-  if (!apiKey) return "Jeg mangler dessverre tilkobling til hjernen min (API-nøkkel mangler).";
-  try {
-    const chat = ai.chats.create({
-      model: 'gemini-3-pro-preview',
-      config: {
-        systemInstruction: "Du er en hjelpsom, varm og intellektuell lærerassistent ved navn 'Lumière'. Du hjelper studenter med å forstå kursmateriell med klarhet og dybde. Hold svarene konsise, men innsiktsfulle. Svar alltid på norsk.",
-      },
-      history: history.map(h => ({
-        role: h.role,
-        parts: [{ text: h.text }]
-      }))
-    });
-
-    const response = await chat.sendMessage({ message });
-    return response.text || "Jeg reflekterer over det...";
-  } catch (error) {
-    console.error("Chat error:", error);
-    return "Jeg har problemer med å koble til kunnskapsbasen akkurat nå.";
-  }
+  console.log("AI (Chat) disabled. Message:", message);
+  return "Hei! Jeg er for tiden i hvilemodus mens systemene oppdateres. Jeg kan dessverre ikke gi deg et AI-generert svar akkurat nå, men kos deg med kurset!";
 };
 
 /**
  * Uses Thinking Mode to act as a "Course Architect".
- * Helps the creator structure their course.
+ * (MOCKED: Returns a static JSON structure)
  */
 export const generateCourseStructure = async (topic: string): Promise<string> => {
-  if (!apiKey) return JSON.stringify({ title: "Mangler API Nøkkel", description: "Sjekk .env filen din", acts: [] });
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `Lag en filmatisk, narrativ-drevet kursoversikt for emnet: "${topic}". 
-      Gi en Tittel (Title), en poetisk Beskrivelse (Description), og 3 distinkte "Akter" (Acts / sections) som forteller en historie.
-      Output må være på Norsk (Norwegian).
-      Format the output as JSON.`,
-      config: {
-        thinkingConfig: { thinkingBudget: 32768 }, 
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            description: { type: Type.STRING },
-            acts: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  description: { type: Type.STRING }
-                }
-              }
-            }
+  console.log("AI (Structure) disabled. Topic:", topic);
+  
+  // Return a mock structure so the UI doesn't break
+  const mockStructure = {
+      title: topic || "Nytt Kurs",
+      description: `En strukturert gjennomgang av ${topic || "emnet"}. (AI-generering er deaktivert)`,
+      acts: [
+          {
+              title: "Del 1: Grunnlaget",
+              description: "Introduksjon til de viktigste konseptene."
+          },
+          {
+              title: "Del 2: Fordypning",
+              description: "Vi går dypere inn i materien og utforsker nyansene."
+          },
+          {
+              title: "Del 3: Mestring",
+              description: "Hvordan anvende kunnskapen i praksis."
           }
-        }
-      }
-    });
-
-    return response.text || "{}";
-  } catch (error) {
-    console.error("Thinking error:", error);
-    return "{}";
-  }
+      ]
+  };
+  
+  return JSON.stringify(mockStructure);
 };
 
 /**
- * Helper to simulate "Magic Paste" intelligence (extracting metadata from text/url context).
- * Also fetches YouTube Thumbnails.
+ * Helper to simulate "Magic Paste" intelligence.
+ * (MOCKED: Only fetches YouTube thumbnail, no text summarization)
  */
 export const enrichBlockContent = async (content: string): Promise<{title: string, description: string, thumbnail?: string}> => {
-    // Extract YouTube ID if present to get thumbnail
+    // Extract YouTube ID if present to get thumbnail (Logic works without API key)
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = content.match(regExp);
     const youtubeId = (match && match[2].length === 11) ? match[2] : null;
@@ -162,30 +75,10 @@ export const enrichBlockContent = async (content: string): Promise<{title: strin
         thumbnail = `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`;
     }
 
-    if (!apiKey) return { title: "Innhold", description: "Beskrivelse (AI Utilgjengelig)", thumbnail };
-
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: `I have a link or text content: "${content}". 
-            If it's a YouTube link, generate a catchy, educational title and a 1-sentence summary description for it. 
-            If it's text, summarize it into a title and description.
-            Answer in Norwegian.
-            Return JSON.`,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        title: { type: Type.STRING },
-                        description: { type: Type.STRING }
-                    }
-                }
-            }
-        });
-        const data = JSON.parse(response.text || '{"title": "Ny Blokk", "description": ""}');
-        return { ...data, thumbnail };
-    } catch (e) {
-        return { title: "Innholdsblokk", description: "Lagt til innhold", thumbnail };
-    }
+    // Mock return without AI call
+    return { 
+        title: "Ny Innholdsblokk", 
+        description: "Beskrivelse hentes automatisk (AI deaktivert)", 
+        thumbnail 
+    };
 }
