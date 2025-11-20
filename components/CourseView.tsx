@@ -422,10 +422,10 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [cinematicVideoId, setCinematicVideoId] = useState<string | null>(null);
-  const mainScrollRef = useRef<HTMLDivElement>(null);
+  const mainScrollRef = useRef<HTMLElement>(null);
   
   // Ref array handles: [0: Hero, 1..N: Sections, N+1: End]
-  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const sectionRefs = useRef<(HTMLElement | null)[]>([]);
 
   const sections = useMemo(() => {
     const result: CourseSection[] = [];
