@@ -20,8 +20,8 @@ import { auth, googleProvider, db } from './services/firebase';
 
 // --- KONFIGURASJON ---
 
-// Liste over e-poster som har lov til å logge inn og redigere
-// VIKTIG: LEGG TIL DIN EGEN E-POST HER
+// Liste over e-poster som har lov til å REDIGERE og LAGE kurs (Admins)
+// Alle andre innloggede brukere blir "Studenter"
 const ALLOWED_EMAILS = [
   "din.epost@gmail.com",
   "annen.admin@example.com"
@@ -96,7 +96,6 @@ const LoginModal: React.FC<{ onClose: () => void; onGoogleLogin: () => void }> =
                 if (name) {
                     await updateProfile(userCredential.user, { displayName: name });
                 }
-                // Whitelist check happens in App's onAuthStateChanged
             } else {
                 // Sign in
                 await signInWithEmailAndPassword(auth, email, password);
@@ -242,33 +241,27 @@ const App: React.FC = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Listen for auth state changes & enforce whitelist
+  // Beregn om brukeren er Admin (kan redigere) eller Student (kan se)
+  const isAdmin = user && user.email && ALLOWED_EMAILS.includes(user.email);
+
+  // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        // SJEKK OM BRUKEREN ER PÅ LISTEN
-        if (currentUser.email && ALLOWED_EMAILS.includes(currentUser.email)) {
-            setUser(currentUser);
-            setAuthError(null);
-        } else {
-            // Ikke godkjent bruker
-            console.warn(`Tilgang nektet for ${currentUser.email}. Logger ut.`);
-            await signOut(auth);
-            setUser(null);
-            setAuthError("Tilgang nektet: E-postadressen din står ikke på listen over godkjente brukere.");
-            setViewMode(ViewMode.LANDING);
-        }
-      } else {
-        setUser(null);
-      }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
       setIsLoggingIn(false);
+      setAuthError(null);
+      
+      // Vi sjekker ikke lenger om e-posten er whitelisted her for å kaste dem ut.
+      // Alle innloggede brukere er velkomne, men funksjonalitet begrenses i UI via 'isAdmin'.
     });
     return () => unsubscribe();
   }, []);
 
   // Fetch courses from Firestore
+  // Runs initially AND whenever 'user' state changes (e.g. login/logout)
   useEffect(() => {
     const fetchCourses = async () => {
+      setLoadingCourses(true);
       try {
         const q = query(collection(db, "courses"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
@@ -288,20 +281,20 @@ const App: React.FC = () => {
       } catch (error: any) {
         console.error("Feil ved henting av kurs: ", error);
         
-        // Viser spesifikk feilmelding i konsollen hvis det er rettighetsproblemer
-        if (error.code === 'permission-denied') {
-            console.error("FIRESTORE PERMISSION DENIED: Sjekk 'Rules' i Firebase Console. De må tillate lesing.");
-        }
-
         // Fallback to demo if fetching fails
         setCourses([SAMPLE_COURSE]);
+
+        if (error.code === 'permission-denied') {
+            // Dette skal ikke skje for lesing hvis reglene er 'allow read: if true' eller 'if request.auth != null'
+            console.log("Firestore: Tilgang nektet for lesing.");
+        }
       } finally {
         setLoadingCourses(false);
       }
     };
 
     fetchCourses();
-  }, []);
+  }, [user]);
 
   const handleGoogleLogin = async () => {
       setIsLoggingIn(true);
@@ -309,7 +302,6 @@ const App: React.FC = () => {
       setShowLoginModal(false); // Close modal if open
       try {
           await signInWithPopup(auth, googleProvider);
-          // Whitelist sjekkes i onAuthStateChanged
       } catch (error: any) {
           console.error("Login failed:", error);
           setAuthError("Innlogging feilet. Vennligst prøv igjen.");
@@ -325,6 +317,10 @@ const App: React.FC = () => {
 
   const handleSaveCourse = async (savedCourse: Course) => {
       if (!user) return;
+      if (!isAdmin) {
+          alert("Du har ikke tilgang til å lagre endringer.");
+          return;
+      }
 
       // Add metadata
       const courseToSave: Course = {
@@ -365,7 +361,7 @@ const App: React.FC = () => {
 
   const editCourse = (e: React.MouseEvent, course: Course) => {
       e.stopPropagation();
-      if (!user) return;
+      if (!isAdmin) return;
       
       setActiveCourse(course);
       setViewMode(ViewMode.CREATOR);
@@ -376,6 +372,8 @@ const App: React.FC = () => {
           setShowLoginModal(true);
           return;
       }
+      if (!isAdmin) return;
+
       setActiveCourse(undefined);
       setViewMode(ViewMode.CREATOR);
   };
@@ -411,25 +409,29 @@ const App: React.FC = () => {
               
               {user ? (
                   <div className="flex items-center gap-4 pl-6 border-l border-stone-200">
-                      <button 
-                        onClick={createNewCourse}
-                        className="hover:text-stone-900 transition bg-stone-900 text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-md hover:shadow-lg hover:bg-stone-800"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Nytt Kurs</span>
-                      </button>
+                      {/* Vis kun Nytt Kurs knapp for Admins */}
+                      {isAdmin && (
+                        <button 
+                            onClick={createNewCourse}
+                            className="hover:text-stone-900 transition bg-stone-900 text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-md hover:shadow-lg hover:bg-stone-800"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>Nytt Kurs</span>
+                        </button>
+                      )}
                       <div className="relative group cursor-pointer">
                           {user.photoURL ? (
                               <img src={user.photoURL} alt="User" className="w-9 h-9 rounded-full border border-stone-200" />
                           ) : (
                               <div className="w-9 h-9 rounded-full bg-stone-200 flex items-center justify-center text-stone-500 font-serif">
-                                  {user.displayName ? user.displayName[0].toUpperCase() : user.email?.[0].toUpperCase()}
+                                  {user.displayName ? user.displayName[0].toUpperCase() : (user.email?.[0].toUpperCase() || 'U')}
                               </div>
                           )}
                           <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-stone-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                               <div className="px-4 py-2 border-b border-stone-50">
                                   <p className="text-stone-900 font-bold truncate">{user.displayName || 'Bruker'}</p>
                                   <p className="text-xs text-stone-400 truncate">{user.email}</p>
+                                  <p className="text-[10px] uppercase tracking-widest mt-1 text-stone-500">{isAdmin ? 'Skaper' : 'Student'}</p>
                               </div>
                               <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-red-500 hover:bg-stone-50 flex items-center gap-2">
                                   <LogOut className="w-3 h-3" /> Logg ut
@@ -470,10 +472,10 @@ const App: React.FC = () => {
           </h1>
           <p className="text-xl text-stone-600 max-w-2xl mx-auto mb-12 font-light leading-relaxed">
               En digital opplevelse designet for dybde, ro og forståelse. 
-              {user ? ' Velkommen tilbake, skaper.' : ' Logg inn for å dele din kunnskap.'}
+              {user ? (isAdmin ? ' Velkommen tilbake, skaper.' : ' Klar for å lære?') : ' Logg inn for å starte reisen.'}
           </p>
           
-          {user ? (
+          {isAdmin ? (
                <button 
                 onClick={createNewCourse}
                 className="flex items-center space-x-3 bg-stone-900 text-white px-8 py-4 rounded-full hover:bg-stone-800 transition-all shadow-lg hover:shadow-xl mx-auto group"
@@ -483,11 +485,11 @@ const App: React.FC = () => {
               </button>
           ) : (
               <button 
-                onClick={() => setShowLoginModal(true)}
+                onClick={() => user ? null : setShowLoginModal(true)} // Hvis logget inn som student, gjør ingenting (eller scroll ned)
                 className="flex items-center space-x-3 bg-white text-stone-800 border border-stone-200 px-8 py-4 rounded-full hover:bg-stone-50 hover:border-stone-300 transition-all shadow-sm hover:shadow-md mx-auto"
               >
-                  <LogIn className="w-5 h-5 text-stone-600" />
-                  <span className="font-medium">Start reisen</span>
+                  {user ? <Library className="w-5 h-5 text-stone-600" /> : <LogIn className="w-5 h-5 text-stone-600" />}
+                  <span className="font-medium">{user ? 'Utforsk Biblioteket' : 'Start reisen'}</span>
               </button>
           )}
       </header>
@@ -536,8 +538,8 @@ const App: React.FC = () => {
                                   </div>
                               </div>
 
-                              {/* Edit Button on Card (Visible for allowed users) */}
-                              {user && (
+                              {/* Edit Button on Card (Visible for ADMINS only) */}
+                              {isAdmin && (
                                 <button 
                                     onClick={(e) => editCourse(e, course)}
                                     className="absolute top-4 right-4 bg-white/90 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white shadow-sm z-20"
@@ -565,8 +567,8 @@ const App: React.FC = () => {
                       </div>
                   ))}
 
-                  {/* New Course Card (Only visible if logged in) */}
-                  {user && (
+                  {/* New Course Card (Only visible if ADMIN) */}
+                  {isAdmin && (
                       <button 
                         onClick={createNewCourse}
                         className="group flex flex-col items-center justify-center aspect-[4/3] rounded-2xl border-2 border-dashed border-stone-200 hover:border-stone-400 hover:bg-stone-50 transition-all duration-300"
