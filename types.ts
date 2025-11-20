@@ -28,6 +28,8 @@ export interface Course {
   category?: string; // Custom tag/category (e.g. "Matematikk", "Originalt Kurs")
   coverImage: string;
   blocks: CourseBlock[];
+  authorId?: string; // ID of the user who created the course
+  createdAt?: number; // Timestamp
 }
 
 export interface ChatMessage {
