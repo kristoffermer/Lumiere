@@ -14,6 +14,7 @@ interface TabItem {
     label: string;
     content: string;
     icon?: string; // Emoji or icon name
+    image?: string; // Background image for the content pane
 }
 
 export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onSave, onCancel }) => {
@@ -136,8 +137,8 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
 
   const addTabsBlock = () => {
       const initialTabs: TabItem[] = [
-          { label: 'Oversikt', content: 'Kort oversikt...', icon: '📋' },
-          { label: 'Detaljer', content: 'Dypdykk...', icon: '🔍' }
+          { label: 'Steg 1', content: 'Beskrivelse av første steg...', icon: '1' },
+          { label: 'Steg 2', content: 'Mer informasjon her...', icon: '2' }
       ];
       setBlocks([...blocks, {
           id: Date.now().toString(),
@@ -589,7 +590,7 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                         {block.type === BlockType.TABS && (
                             <div className="space-y-4">
                                 <div className="flex items-center text-stone-400 uppercase text-xs tracking-widest mb-4">
-                                    <LayoutTemplate className="w-4 h-4 mr-2"/> Interaktive Faner
+                                    <LayoutTemplate className="w-4 h-4 mr-2"/> Interaktiv Steg-Modell
                                 </div>
                                 {(() => {
                                     let tabs: TabItem[] = [];
@@ -612,99 +613,121 @@ export const CreatorStudio: React.FC<CreatorStudioProps> = ({ initialCourse, onS
                                         newTabs.splice(draggedTabIndex, 1);
                                         newTabs.splice(tIdx, 0, item);
                                         setDraggedTabIndex(tIdx);
-                                        // Update block content immediately for visual feedback
                                         updateBlockContent(block.id, JSON.stringify(newTabs));
-                                        // Keep active index consistent if possible, or switch to dragged
                                         if (activeIndex === draggedTabIndex) setActiveTabEdits(prev => ({ ...prev, [block.id]: tIdx }));
                                     };
 
                                     return (
-                                        <div className="bg-stone-50 rounded-xl border border-stone-200 overflow-hidden">
-                                            {/* Visual Tab Strip */}
-                                            <div className="flex items-center gap-1 p-2 bg-stone-100/50 border-b border-stone-200 overflow-x-auto no-scrollbar">
-                                                {tabs.map((tab, tIdx) => (
-                                                    <div 
-                                                        key={tIdx}
-                                                        draggable
-                                                        onDragStart={() => handleTabDragStart(tIdx)}
-                                                        onDragEnter={() => handleTabDragEnter(tIdx)}
-                                                        onDragEnd={() => setDraggedTabIndex(null)}
-                                                        onDragOver={(e) => e.preventDefault()}
-                                                        onClick={() => setActiveTabEdits(prev => ({ ...prev, [block.id]: tIdx }))}
-                                                        className={`cursor-pointer px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition-all flex-shrink-0 select-none ${
-                                                            activeIndex === tIdx 
-                                                            ? 'bg-white text-stone-900 shadow-sm ring-1 ring-black/5' 
-                                                            : 'text-stone-500 hover:bg-stone-200/50 hover:text-stone-700'
-                                                        } ${draggedTabIndex === tIdx ? 'opacity-50' : ''}`}
-                                                    >
-                                                        <span>{tab.icon || '📄'}</span>
-                                                        <span>{tab.label || 'Uten navn'}</span>
-                                                    </div>
-                                                ))}
-                                                <button 
-                                                    onClick={() => {
-                                                        const newTabs = [...tabs, { label: 'Ny Fane', content: '', icon: '✨' }];
-                                                        updateBlockContent(block.id, JSON.stringify(newTabs));
-                                                        setActiveTabEdits(prev => ({ ...prev, [block.id]: newTabs.length - 1 }));
-                                                    }}
-                                                    className="px-3 py-2 rounded-lg text-stone-400 hover:bg-stone-200/50 hover:text-stone-600 transition-colors flex-shrink-0"
-                                                >
-                                                    <Plus className="w-4 h-4" />
-                                                </button>
-                                            </div>
-
-                                            {/* Active Tab Editor */}
-                                            {tabs[activeIndex] && (
-                                                <div className="p-6 bg-white">
-                                                    <div className="flex gap-4 mb-4">
-                                                        <div className="w-20">
-                                                            <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Ikon</label>
-                                                            <input 
-                                                                value={tabs[activeIndex].icon || ''}
-                                                                onChange={(e) => updateTab(activeIndex, 'icon', e.target.value)}
-                                                                className="w-full bg-stone-50 border border-stone-200 rounded-md px-2 py-1.5 text-center outline-none focus:border-stone-400"
-                                                                placeholder="Emoji"
-                                                            />
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Fane Navn</label>
-                                                            <input 
-                                                                value={tabs[activeIndex].label}
-                                                                onChange={(e) => updateTab(activeIndex, 'label', e.target.value)}
-                                                                className="w-full bg-stone-50 border border-stone-200 rounded-md px-3 py-1.5 font-medium text-stone-800 outline-none focus:border-stone-400"
-                                                                placeholder="f.eks. Oversikt"
-                                                            />
-                                                        </div>
-                                                        <div className="self-end">
-                                                             <button 
-                                                                onClick={() => {
-                                                                    const newTabs = tabs.filter((_, i) => i !== activeIndex);
+                                        <div className="bg-stone-50 rounded-xl border border-stone-200 overflow-hidden flex flex-col md:flex-row">
+                                            {/* Vertical Tab List (Left Side) */}
+                                            <div className="w-full md:w-1/3 bg-stone-100/50 border-r border-stone-200 p-2 overflow-y-auto max-h-[400px]">
+                                                <div className="space-y-1">
+                                                    {tabs.map((tab, tIdx) => (
+                                                        <div 
+                                                            key={tIdx}
+                                                            draggable
+                                                            onDragStart={() => handleTabDragStart(tIdx)}
+                                                            onDragEnter={() => handleTabDragEnter(tIdx)}
+                                                            onDragEnd={() => setDraggedTabIndex(null)}
+                                                            onDragOver={(e) => e.preventDefault()}
+                                                            onClick={() => setActiveTabEdits(prev => ({ ...prev, [block.id]: tIdx }))}
+                                                            className={`cursor-pointer px-3 py-3 rounded-lg text-sm flex items-center space-x-3 transition-all select-none group ${
+                                                                activeIndex === tIdx 
+                                                                ? 'bg-white text-stone-900 shadow-sm ring-1 ring-black/5' 
+                                                                : 'text-stone-500 hover:bg-white/50 hover:text-stone-700'
+                                                            } ${draggedTabIndex === tIdx ? 'opacity-50' : ''}`}
+                                                        >
+                                                            <span className="w-6 h-6 flex items-center justify-center bg-stone-200 rounded-full text-xs font-bold text-stone-600">{tab.icon || (tIdx + 1)}</span>
+                                                            <span className="font-medium truncate flex-1">{tab.label || 'Uten navn'}</span>
+                                                            <button 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const newTabs = tabs.filter((_, i) => i !== tIdx);
                                                                     updateBlockContent(block.id, JSON.stringify(newTabs));
                                                                     setActiveTabEdits(prev => ({ ...prev, [block.id]: Math.max(0, activeIndex - 1) }));
                                                                 }}
-                                                                className="p-2 text-stone-400 hover:text-red-500 transition-colors bg-stone-50 rounded-md border border-stone-100 hover:border-red-200"
-                                                                title="Slett Fane"
+                                                                className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-opacity"
                                                             >
-                                                                <Trash2 className="w-4 h-4"/>
+                                                                <Trash2 className="w-3 h-3"/>
                                                             </button>
                                                         </div>
+                                                    ))}
+                                                    <button 
+                                                        onClick={() => {
+                                                            const newTabs = [...tabs, { label: 'Nytt Steg', content: '', icon: `${tabs.length + 1}` }];
+                                                            updateBlockContent(block.id, JSON.stringify(newTabs));
+                                                            setActiveTabEdits(prev => ({ ...prev, [block.id]: newTabs.length - 1 }));
+                                                        }}
+                                                        className="w-full px-3 py-2 rounded-lg text-stone-400 border border-dashed border-stone-300 hover:bg-white hover:text-stone-600 transition-colors text-xs uppercase tracking-wider flex items-center justify-center gap-2 mt-2"
+                                                    >
+                                                        <Plus className="w-3 h-3" /> Legg til steg
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Active Tab Editor (Right Side) */}
+                                            <div className="w-full md:w-2/3 p-6 bg-white">
+                                                {tabs[activeIndex] ? (
+                                                    <>
+                                                        <div className="grid grid-cols-4 gap-4 mb-4">
+                                                            <div className="col-span-1">
+                                                                <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Ikon</label>
+                                                                <input 
+                                                                    value={tabs[activeIndex].icon || ''}
+                                                                    onChange={(e) => updateTab(activeIndex, 'icon', e.target.value)}
+                                                                    className="w-full bg-stone-50 border border-stone-200 rounded-md px-2 py-1.5 text-center outline-none focus:border-stone-400 text-sm"
+                                                                    placeholder="#"
+                                                                />
+                                                            </div>
+                                                            <div className="col-span-3">
+                                                                <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Tittel</label>
+                                                                <input 
+                                                                    value={tabs[activeIndex].label}
+                                                                    onChange={(e) => updateTab(activeIndex, 'label', e.target.value)}
+                                                                    className="w-full bg-stone-50 border border-stone-200 rounded-md px-3 py-1.5 font-medium text-stone-800 outline-none focus:border-stone-400 text-sm"
+                                                                    placeholder="f.eks. Mekanisk Filter"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="mb-4">
+                                                             <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Bakgrunnsbilde (URL)</label>
+                                                             <div className="flex gap-2">
+                                                                <input 
+                                                                    value={tabs[activeIndex].image || ''}
+                                                                    onChange={(e) => updateTab(activeIndex, 'image', e.target.value)}
+                                                                    className="flex-1 bg-stone-50 border border-stone-200 rounded-md px-3 py-1.5 text-xs outline-none focus:border-stone-400"
+                                                                    placeholder="https://..."
+                                                                />
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        const kw = prompt("Søk Unsplash:");
+                                                                        if(kw) updateTab(activeIndex, 'image', `https://source.unsplash.com/featured/1600x900?${encodeURIComponent(kw)}`);
+                                                                    }}
+                                                                    className="px-2 bg-stone-100 rounded hover:bg-stone-200 text-stone-500"
+                                                                >
+                                                                    <Search className="w-3 h-3"/>
+                                                                </button>
+                                                             </div>
+                                                        </div>
+
+                                                        <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Innhold (Markdown)</label>
+                                                        <div className="border border-stone-100 rounded-lg overflow-hidden">
+                                                            <MarkdownToolbar blockId={`${block.id}-tab-${activeIndex}`} content={tabs[activeIndex].content} />
+                                                            <textarea 
+                                                                value={tabs[activeIndex].content}
+                                                                onChange={(e) => updateTab(activeIndex, 'content', e.target.value)}
+                                                                className="w-full min-h-[200px] bg-stone-50/30 p-4 text-stone-700 outline-none focus:bg-white transition-all resize-y text-sm leading-relaxed"
+                                                                placeholder="Beskriv dette steget..."
+                                                            />
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="h-full flex items-center justify-center text-stone-400 italic text-sm">
+                                                        Velg eller opprett et steg til venstre.
                                                     </div>
-                                                    
-                                                    <label className="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-1 block">Innhold</label>
-                                                    <MarkdownToolbar blockId={`${block.id}-tab-${activeIndex}`} content={tabs[activeIndex].content} />
-                                                    <textarea 
-                                                        value={tabs[activeIndex].content}
-                                                        onChange={(e) => updateTab(activeIndex, 'content', e.target.value)}
-                                                        className="w-full min-h-[150px] bg-stone-50/30 border border-stone-100 rounded-lg p-4 text-stone-700 outline-none focus:bg-white focus:border-stone-300 focus:ring-2 focus:ring-stone-100 transition-all resize-y"
-                                                        placeholder="Faneinnhold her. Markdown støttes."
-                                                    />
-                                                </div>
-                                            )}
-                                            {tabs.length === 0 && (
-                                                <div className="p-8 text-center text-stone-400 text-sm italic">
-                                                    Ingen faner enda. Klikk "+" for å legge til.
-                                                </div>
-                                            )}
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })()}

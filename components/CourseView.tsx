@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Course, BlockType, CourseBlock } from '../types';
-import { MessageSquare, X, Sparkles, Maximize2, Minimize2, ChevronDown, CheckSquare, Square, ArrowLeft } from 'lucide-react';
+import { MessageSquare, X, Sparkles, Maximize2, Minimize2, ChevronDown, CheckSquare, Square, ArrowLeft, Circle, ArrowRight } from 'lucide-react';
 import { chatWithAI } from '../services/gemini';
 
 interface CourseViewProps {
@@ -86,7 +86,7 @@ const ScrollReveal: React.FC<{ children: React.ReactNode; delay?: number }> = ({
   );
 };
 
-const MarkdownText: React.FC<{ content: string }> = ({ content }) => {
+const MarkdownText: React.FC<{ content: string; className?: string }> = ({ content, className = "" }) => {
     const parseFormatting = (text: string) => {
         const regex = /(\[.*?\]\(.*?\)|`[^`]+`|\*\*.*?\*\*|\*.*?\*|~~.*?~~)/g;
         const parts = text.split(regex);
@@ -95,20 +95,20 @@ const MarkdownText: React.FC<{ content: string }> = ({ content }) => {
             if (part.match(/^\[(.*?)\]\((.*?)\)$/)) {
                 const match = part.match(/^\[(.*?)\]\((.*?)\)$/);
                 if (match) {
-                    return <a key={i} href={match[2]} target="_blank" rel="noopener noreferrer" className="text-stone-800 underline decoration-1 underline-offset-4 hover:text-blue-600 transition-colors">{match[1]}</a>;
+                    return <a key={i} href={match[2]} target="_blank" rel="noopener noreferrer" className="underline decoration-1 underline-offset-4 hover:opacity-70 transition-opacity">{match[1]}</a>;
                 }
             }
             if (part.startsWith('`') && part.endsWith('`')) {
-                return <code key={i} className="bg-stone-200/60 text-stone-800 px-1.5 py-0.5 rounded text-sm font-mono border border-stone-300/50 mx-0.5">{part.slice(1, -1)}</code>;
+                return <code key={i} className="bg-white/20 px-1.5 py-0.5 rounded text-sm font-mono border border-white/10 mx-0.5">{part.slice(1, -1)}</code>;
             }
             if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={i} className="font-bold text-stone-900">{part.slice(2, -2)}</strong>;
+                return <strong key={i} className="font-bold">{part.slice(2, -2)}</strong>;
             }
             if (part.startsWith('*') && part.endsWith('*')) {
-                return <em key={i} className="italic text-stone-600">{part.slice(1, -1)}</em>;
+                return <em key={i} className="italic opacity-90">{part.slice(1, -1)}</em>;
             }
             if (part.startsWith('~~') && part.endsWith('~~')) {
-                return <span key={i} className="line-through text-stone-400">{part.slice(2, -2)}</span>;
+                return <span key={i} className="line-through opacity-60">{part.slice(2, -2)}</span>;
             }
             return part;
         });
@@ -129,22 +129,22 @@ const MarkdownText: React.FC<{ content: string }> = ({ content }) => {
         );
 
         return (
-            <div key={idx} className="overflow-x-auto my-8 rounded-xl border border-stone-200 shadow-sm bg-white/50 backdrop-blur-sm">
-                <table className="min-w-full divide-y divide-stone-200">
-                    <thead className="bg-stone-50/80">
+            <div key={idx} className="overflow-x-auto my-8 rounded-xl border border-white/20 shadow-sm bg-white/10 backdrop-blur-sm">
+                <table className="min-w-full divide-y divide-white/10">
+                    <thead className="bg-white/10">
                         <tr>
                             {headers.map((header, hIdx) => (
-                                <th key={hIdx} className="px-6 py-3 text-left text-xs font-serif font-bold text-stone-600 uppercase tracking-wider">
+                                <th key={hIdx} className="px-6 py-3 text-left text-xs font-serif font-bold uppercase tracking-wider opacity-80">
                                     {parseFormatting(header)}
                                 </th>
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-stone-100">
+                    <tbody className="divide-y divide-white/10">
                         {dataRows.map((row, rIdx) => (
-                            <tr key={rIdx} className="hover:bg-stone-50/50 transition-colors">
+                            <tr key={rIdx} className="hover:bg-white/5 transition-colors">
                                 {row.map((cell, cIdx) => (
-                                    <td key={cIdx} className="px-6 py-4 whitespace-nowrap text-sm text-stone-700">
+                                    <td key={cIdx} className="px-6 py-4 whitespace-nowrap text-sm">
                                         {parseFormatting(cell)}
                                     </td>
                                 ))}
@@ -162,11 +162,11 @@ const MarkdownText: React.FC<{ content: string }> = ({ content }) => {
         if (trimmed.startsWith('```')) {
             const content = trimmed.replace(/^```.*\n/, '').replace(/\n```$/, '');
             return (
-                <div key={idx} className="relative group max-w-3xl mx-auto">
-                    <div className="absolute -top-3 left-4 bg-stone-200 text-stone-600 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm font-bold">
+                <div key={idx} className="relative group w-full">
+                    <div className="absolute -top-3 left-4 bg-black/50 backdrop-blur text-white text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm font-bold border border-white/10">
                         Kode
                     </div>
-                    <pre className="bg-[#1e1e1e] text-[#d4d4d4] p-6 rounded-xl overflow-x-auto text-sm font-mono my-8 shadow-lg border border-stone-200/20">
+                    <pre className="bg-black/40 text-stone-200 p-6 rounded-xl overflow-x-auto text-sm font-mono my-8 shadow-inner border border-white/10">
                         <code>{content}</code>
                     </pre>
                 </div>
@@ -178,24 +178,24 @@ const MarkdownText: React.FC<{ content: string }> = ({ content }) => {
         }
 
         return (
-            <div key={idx} className="max-w-3xl mx-auto">
+            <div key={idx} className="w-full">
                 {block.split('\n').map((line, lIdx) => {
-                    if (line.startsWith('# ')) return <h1 key={lIdx} className="font-serif text-4xl text-stone-900 mt-8 mb-4 leading-tight border-b border-stone-200 pb-4">{parseFormatting(line.replace('# ', ''))}</h1>;
-                    if (line.startsWith('## ')) return <h2 key={lIdx} className="font-serif text-3xl text-stone-800 mt-8 mb-4 font-medium">{parseFormatting(line.replace('## ', ''))}</h2>;
-                    if (line.startsWith('### ')) return <h3 key={lIdx} className="font-serif text-xl text-stone-700 mt-6 mb-3 font-bold uppercase tracking-wide">{parseFormatting(line.replace('### ', ''))}</h3>;
+                    if (line.startsWith('# ')) return <h1 key={lIdx} className="font-serif text-4xl mt-8 mb-4 leading-tight border-b border-white/20 pb-4">{parseFormatting(line.replace('# ', ''))}</h1>;
+                    if (line.startsWith('## ')) return <h2 key={lIdx} className="font-serif text-3xl mt-8 mb-4 font-medium">{parseFormatting(line.replace('## ', ''))}</h2>;
+                    if (line.startsWith('### ')) return <h3 key={lIdx} className="font-serif text-xl mt-6 mb-3 font-bold uppercase tracking-wide opacity-90">{parseFormatting(line.replace('### ', ''))}</h3>;
 
                     if (line.startsWith('> ')) return (
-                        <div key={lIdx} className="border-l-4 border-stone-400 pl-6 py-3 my-8 italic text-stone-700 text-xl font-serif bg-stone-100/50 rounded-r-xl">
+                        <div key={lIdx} className="border-l-4 border-white/40 pl-6 py-3 my-8 italic text-xl font-serif bg-white/5 rounded-r-xl">
                             {parseFormatting(line.replace('> ', ''))}
                         </div>
                     );
 
-                    if (line.startsWith('- [ ] ')) return <div key={lIdx} className="flex items-center space-x-3 my-3 text-stone-700 font-medium"><Square className="w-5 h-5 text-stone-400" /><span>{parseFormatting(line.replace('- [ ] ', ''))}</span></div>;
-                    if (line.startsWith('- [x] ')) return <div key={lIdx} className="flex items-center space-x-3 my-3 text-stone-400 line-through"><CheckSquare className="w-5 h-5 text-stone-400" /><span>{parseFormatting(line.replace('- [x] ', ''))}</span></div>;
-                    if (line.startsWith('- ')) return <li key={lIdx} className="ml-4 list-disc pl-2 mb-2 text-stone-700 leading-relaxed">{parseFormatting(line.replace('- ', ''))}</li>;
-                    if (line.match(/^\d+\. /)) return <li key={lIdx} className="ml-4 list-decimal pl-2 mb-2 text-stone-700 leading-relaxed">{parseFormatting(line.replace(/^\d+\. /, ''))}</li>;
+                    if (line.startsWith('- [ ] ')) return <div key={lIdx} className="flex items-center space-x-3 my-3 font-medium"><Square className="w-5 h-5 opacity-60" /><span>{parseFormatting(line.replace('- [ ] ', ''))}</span></div>;
+                    if (line.startsWith('- [x] ')) return <div key={lIdx} className="flex items-center space-x-3 my-3 opacity-60 line-through"><CheckSquare className="w-5 h-5" /><span>{parseFormatting(line.replace('- [x] ', ''))}</span></div>;
+                    if (line.startsWith('- ')) return <li key={lIdx} className="ml-4 list-disc pl-2 mb-2 leading-relaxed">{parseFormatting(line.replace('- ', ''))}</li>;
+                    if (line.match(/^\d+\. /)) return <li key={lIdx} className="ml-4 list-decimal pl-2 mb-2 leading-relaxed">{parseFormatting(line.replace(/^\d+\. /, ''))}</li>;
 
-                    if (line.trim() === '---') return <div key={lIdx} className="flex items-center justify-center my-10 opacity-30"><span className="w-2 h-2 bg-stone-900 rounded-full mx-1"></span><span className="w-2 h-2 bg-stone-900 rounded-full mx-1"></span><span className="w-2 h-2 bg-stone-900 rounded-full mx-1"></span></div>;
+                    if (line.trim() === '---') return <div key={lIdx} className="flex items-center justify-center my-10 opacity-30"><span className="w-2 h-2 bg-current rounded-full mx-1"></span><span className="w-2 h-2 bg-current rounded-full mx-1"></span><span className="w-2 h-2 bg-current rounded-full mx-1"></span></div>;
 
                     if (line.trim() === '') return <br key={lIdx}/>;
 
@@ -206,7 +206,7 @@ const MarkdownText: React.FC<{ content: string }> = ({ content }) => {
     }
 
     const blocks = content.split(/\n\n+/);
-    return <div>{blocks.map((b, i) => renderBlock(b, i))}</div>;
+    return <div className={className}>{blocks.map((b, i) => renderBlock(b, i))}</div>;
 };
 
 const TabBlock: React.FC<{ content: string }> = ({ content }) => {
@@ -220,27 +220,103 @@ const TabBlock: React.FC<{ content: string }> = ({ content }) => {
 
     if (!tabs.length) return null;
 
+    const activeItem = tabs[activeTab];
+
     return (
-        <div className="my-12 bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-white/60 overflow-hidden max-w-5xl mx-auto">
-            <div className="p-2 bg-stone-50/80 m-2 rounded-2xl flex space-x-1 overflow-x-auto no-scrollbar">
-                {tabs.map((tab: any, idx: number) => (
-                    <button
-                        key={idx}
-                        onClick={() => setActiveTab(idx)}
-                        className={`px-5 py-3 text-sm font-medium rounded-xl transition-all flex items-center space-x-2 flex-shrink-0 ${
-                            activeTab === idx 
-                            ? 'bg-white text-stone-900 shadow-sm ring-1 ring-black/5 scale-100' 
-                            : 'text-stone-500 hover:text-stone-900 hover:bg-white/50 scale-95'
-                        }`}
-                    >
-                        {tab.icon && <span className="text-lg">{tab.icon}</span>}
-                        <span>{tab.label}</span>
-                    </button>
-                ))}
-            </div>
-            <div className="p-8 min-h-[200px]">
-                <div className="prose prose-stone max-w-none animate-fade-in-up">
-                    <MarkdownText content={tabs[activeTab].content} />
+        <div className="my-16 max-w-7xl mx-auto w-full px-2 md:px-0">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-start">
+                
+                {/* Left Side: Interactive Menu (Stepper) */}
+                <div className="lg:col-span-4 flex flex-col relative">
+                    {/* Stepper Line (Desktop Only) */}
+                    <div className="absolute left-8 top-8 bottom-8 w-0.5 bg-stone-200 -z-10 hidden lg:block"></div>
+                    
+                    <div className="space-y-3">
+                        {tabs.map((tab: any, idx: number) => {
+                             const isActive = activeTab === idx;
+                             return (
+                                <button
+                                    key={idx}
+                                    onClick={() => setActiveTab(idx)}
+                                    className={`group relative flex items-center p-4 rounded-2xl transition-all duration-300 text-left w-full ${
+                                        isActive 
+                                        ? 'bg-white shadow-lg scale-[1.02] z-10 ring-1 ring-black/5' 
+                                        : 'hover:bg-white/60'
+                                    }`}
+                                >
+                                    {/* Icon Bubble */}
+                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl shadow-sm flex-shrink-0 transition-all duration-300 border-2 ${
+                                        isActive 
+                                        ? 'bg-stone-900 text-white border-stone-900' 
+                                        : 'bg-white text-stone-400 border-stone-200 group-hover:border-stone-300'
+                                    }`}>
+                                        {tab.icon || (idx + 1)}
+                                    </div>
+
+                                    {/* Label Content */}
+                                    <div className="ml-5 flex-1">
+                                        <div className={`text-[10px] uppercase tracking-widest font-bold mb-1 transition-colors ${isActive ? 'text-stone-500' : 'text-stone-400'}`}>
+                                            Steg 0{idx + 1}
+                                        </div>
+                                        <div className={`font-serif text-lg leading-tight transition-colors ${isActive ? 'text-stone-900 font-bold' : 'text-stone-600 font-medium'}`}>
+                                            {tab.label}
+                                        </div>
+                                    </div>
+
+                                    {/* Active Indicator Arrow */}
+                                    {isActive && (
+                                        <ArrowRight className="w-5 h-5 text-stone-900 mr-2 animate-pulse hidden lg:block" />
+                                    )}
+                                </button>
+                             );
+                        })}
+                    </div>
+                </div>
+
+                {/* Right Side: Cinematic Content Card */}
+                <div className="lg:col-span-8">
+                    <div className="relative rounded-3xl overflow-hidden shadow-2xl min-h-[500px] flex flex-col transition-all duration-500 bg-stone-900">
+                        
+                        {/* Dynamic Background */}
+                        <div className="absolute inset-0 z-0 transition-opacity duration-700 ease-in-out">
+                            {activeItem.image ? (
+                                <>
+                                    <img 
+                                        key={activeItem.image} // Force re-render for fade effect
+                                        src={activeItem.image} 
+                                        className="w-full h-full object-cover animate-fade-in-up opacity-90 scale-105"
+                                        style={{ animationDuration: '1.5s' }}
+                                        alt="Bakgrunn"
+                                    />
+                                    {/* Gradient overlay for text readability */}
+                                    <div className="absolute inset-0 bg-gradient-to-r from-stone-900/90 via-stone-900/60 to-transparent md:via-stone-900/40"></div>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-stone-900 via-transparent to-transparent opacity-80"></div>
+                                </>
+                            ) : (
+                                /* Fallback Abstract Background */
+                                <div className="w-full h-full bg-gradient-to-br from-stone-800 to-black">
+                                    <div className="absolute -right-20 -top-20 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px]"></div>
+                                    <div className="absolute -left-20 -bottom-20 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px]"></div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Content Layer */}
+                        <div className="relative z-10 p-8 md:p-12 flex flex-col h-full justify-center">
+                             <div key={activeTab} className="animate-fade-in-up">
+                                <div className="inline-flex items-center space-x-2 mb-6 px-3 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-md w-fit">
+                                    <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                                    <span className="text-xs font-bold text-white tracking-widest uppercase">
+                                        {activeItem.label}
+                                    </span>
+                                </div>
+
+                                <div className="prose prose-invert prose-lg max-w-none text-stone-100 leading-relaxed font-light">
+                                    <MarkdownText content={activeItem.content} />
+                                </div>
+                             </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -417,10 +493,10 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
         // Check if we are in an input field (e.g. Chat)
         if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
 
-        if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+        if (e.key === 'ArrowDown' || e.key === ' ') {
             e.preventDefault();
             scrollToSection(activeSectionIndex + 1);
-        } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             scrollToSection(activeSectionIndex - 1);
         } else if (e.key === 'Home') {
@@ -445,9 +521,11 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
   const renderBlock = (block: CourseBlock) => {
     switch (block.type) {
       case BlockType.TEXT:
+        // Render standard markdown text unless it's just plain text in a section that might have a specific theme
+        // For now, we keep it consistent.
         return (
           <div className="prose prose-lg prose-stone mx-auto font-light text-stone-700 leading-loose mb-12 max-w-3xl relative z-10">
-            <MarkdownText content={block.content} />
+            <MarkdownText content={block.content} className="" />
           </div>
         );
       case BlockType.TABS:
@@ -655,7 +733,7 @@ export const CourseView: React.FC<CourseViewProps> = ({ course, onBack }) => {
                 className="snap-start min-h-screen relative py-24 md:py-32 px-6 flex flex-col justify-center items-center"
             >
                 {/* Content Wrapper */}
-                <div className={`relative z-10 w-full max-w-6xl mx-auto transition-all duration-1000 ${
+                <div className={`relative z-10 w-full max-w-7xl mx-auto transition-all duration-1000 ${
                     section.header?.metadata?.backgroundImage 
                         ? 'bg-white/95 backdrop-blur-xl shadow-2xl rounded-3xl p-8 md:p-16 border border-white/40 my-12' 
                         : ''
